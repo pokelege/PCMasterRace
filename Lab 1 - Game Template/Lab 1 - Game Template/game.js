@@ -1,3 +1,4 @@
+
 var manifest =
 [
 	{src:"title.png", id:"title"},
@@ -6,10 +7,16 @@ var manifest =
 	{src:"gameover.png", id:"gameover"},
 	{src:"levelsign.png", id:"levelsign"}
 ];
-
+var FPS = 30;
 var stage;
 var canvas;
 var queue;
+var titleScreen;
+var backgroundScreen;
+var instructionScreen;
+var gameoverScreen;
+var levelFrame;
+
 function setUpCanvas()
 {
 	canvas = document.getElementById("game");
@@ -22,7 +29,7 @@ function loadFiles()
 {
 	queue = new createjs.LoadQueue(true, "assets/images/");
 	queue.on("complete", loadComplete, this);
-	queue.loadManifest(manifest);
+	queue.loadManifest( manifest );
 }
 
 function loadComplete()
@@ -34,10 +41,23 @@ function loadComplete()
     levelFrame = new createjs.Bitmap(queue.getResult("levelsign"));
 }
 
+function titleUpdate()
+{
+	
+}
+
+function loop()
+{
+	titleUpdate();
+	stage.update();
+}
+
 function main()
 {
 	loadFiles();
 	setUpCanvas();
+	createjs.Ticker.addEventListener("tick", loop);
+	createjs.Ticker.setFPS(FPS);
 }
 
 if( !!(window.addEventListener))
