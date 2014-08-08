@@ -24,6 +24,12 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Lab 1 - Game Template(1)", 
 		SlnRelativePath = "Lab 1 - Game Template\"
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{14670560-24AE-4EB1-83E3-DA79EF870F96}"
+	ProjectSection(SolutionItems) = preProject
+		src\title.xcf = src\title.xcf
+		src\TitleButtons.xcf = src\TitleButtons.xcf
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
