@@ -1,6 +1,7 @@
 var MODE_TITLE = 0;
 var MODE_INSTRUCTIONS = 1;
 var mode = MODE_TITLE;
+var TITLEBUTTONSIZE = 9;
 var titleManifest =
 [
 	{ src: "title.jpg", id: "title" },
@@ -20,7 +21,7 @@ var gameManifest =
 	];
 var FPS = 30;
 var stage;
-var titleQueue, titleScreen, playButton;
+var titleQueue, titleScreen, playButton, menuButton;
 
 var instructionQueue, instructionScreen;
 
@@ -56,7 +57,7 @@ function titleLoaded()
 				regY: 30 / 2,
 				width: 150,
 				height: 30,
-				count: 6
+				count: TITLEBUTTONSIZE
 			},
 		animations:
 			{
@@ -79,7 +80,7 @@ function titleLoaded()
 			regY: 30 / 2,
 			width: 150,
 			height: 30,
-			count: 6
+			count: TITLEBUTTONSIZE
 		},
 	animations:
 		{
@@ -91,6 +92,30 @@ function titleLoaded()
 	);
 
 	instructionsButton = new createjs.Sprite( instructionsButtonSheet );
+
+
+	var menuButtonSheet = new createjs.SpriteSheet
+(
+{
+	images: [titleQueue.getResult( "titleButtons" )],
+	frames:
+		{
+			regX: 150 / 2,
+			regY: 30 / 2,
+			width: 150,
+			height: 30,
+			count: TITLEBUTTONSIZE
+		},
+	animations:
+		{
+			Neutral: [6, 6],
+			Hover: [7, 7],
+			Click: [8, 8]
+		}
+}
+);
+
+	menuButton = new createjs.Sprite( menuButtonSheet );
 
 	instructionQueue = new createjs.LoadQueue( true, "assets/images/" );
 	instructionQueue.on( "complete", instructionsLoaded, this );
@@ -113,6 +138,20 @@ function gameLoaded()
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
 }
 
+function removeAll()
+{
+	if ( titleInitialized )
+	{
+		titleDelete();
+	}
+	if(instructionsInitialized)
+	{
+		instructionsDelete();
+	}
+}
+
+
+//#region
 var titleInitialized = false;
 function titleInit()
 {
@@ -126,25 +165,22 @@ function titleInit()
 	playButton.gotoAndPlay( "Neutral" );
 	playButton.on( "mouseover", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
 	playButton.on( "mouseout", function playHover( evt ) { playButton.gotoAndPlay( "Hover" ); }, this );
-	playButton.on( "click", function playHover( evt ) { playButton.gotoAndPlay( "Click" ); }, this );
+	playButton.on( "mousedown", function playHover( evt ) { playButton.gotoAndPlay( "Click" ); }, this );
+	playButton.on( "click", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
 
 	instructionsButton.gotoAndPlay( "Neutral" );
 	instructionsButton.on( "mouseover", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); }, this );
 	instructionsButton.on( "mouseout", function playHover( evt ) { instructionsButton.gotoAndPlay( "Hover" ); }, this );
-	instructionsButton.on( "click", function playHover( evt ) { instructionsButton.gotoAndPlay( "Click" ); }, this );
+	instructionsButton.on( "mousedown", function playHover( evt ) { instructionsButton.gotoAndPlay( "Click" );  }, this );
+	instructionsButton.on( "click", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); mode = MODE_INSTRUCTIONS }, this );
 	titleInitialized = true;
 }
 function titleDelete()
 {
 	stage.removeAllChildren();
+	playButton.removeAllEventListeners();
+	instructionsButton.removeAllEventListeners();
 	titleInitialized = false;
-}
-function removeAll()
-{
-	if ( titleInitialized )
-	{
-		titleDelete();
-	}
 }
 function titleUpdate()
 {
@@ -154,7 +190,40 @@ function titleUpdate()
 		titleInit();
 	}
 }
+//#endregion
 
+//#region
+var instructionsInitialized = false;
+function instructionsInit()
+{
+	stage.addChild( instructionScreen );
+	stage.addChild( menuButton );
+	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
+	menuButton.y = stage.canvas.height - ( 30 / 2 );
+	menuButton.gotoAndPlay( "Neutral" );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
+	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
+	instructionsInitialized = true;
+}
+
+function instructionsDelete()
+{
+	stage.removeAllChildren();
+	menuButton.removeAllEventListeners();
+	instructionsInitialized = false;
+}
+
+function instructionsUpdate()
+{
+	if(!instructionsInitialized)
+	{
+		removeAll();
+		instructionsInit();
+	}
+}
+//#endregion
 
 function loop()
 {
@@ -162,8 +231,12 @@ function loop()
 	{
 		case ( MODE_TITLE ):
 			{
-				if(titleQueue.loaded)
-				titleUpdate();
+				if(titleQueue != null && titleQueue.loaded) titleUpdate();
+				break;
+			}
+		case(MODE_INSTRUCTIONS):
+			{
+				if(instructionQueue != null && instructionQueue.loaded)  instructionsUpdate();
 				break;
 			}
 	}
