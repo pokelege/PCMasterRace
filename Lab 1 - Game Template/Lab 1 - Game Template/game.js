@@ -14,12 +14,13 @@ var instructionManifest =
 	[
 			{ src: "instructions.jpg", id: "instructions" }
 	];
-
+var PACMANSIZE = 8;
 var gameManifest =
 	[
 	{ src: "background.jpg", id: "background" },
 	{ src: "gameover.jpg", id: "gameover" },
-	{ src: "levelsign.png", id: "levelsign" }
+	{ src: "levelsign.png", id: "levelsign" },
+	{ src: "pacman.png", id: "pacman" }
 	];
 var FPS = 30;
 var SPF = 1 / FPS;
@@ -28,7 +29,7 @@ var titleQueue, titleScreen, playButton, menuButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, pacman;
 
 function setUpCanvas()
 {
@@ -136,6 +137,46 @@ function instructionsLoaded()
 
 function gameLoaded()
 {
+	var pacmanSheet = new createjs.SpriteSheet
+	(
+{
+	images: [gameQueue.getResult( "pacman" )],
+	frames:
+		{
+			regX: 100 / 2,
+			regY: 100 / 2,
+			width: 100,
+			height: 100,
+			count: PACMANSIZE
+		},
+	animations:
+		{
+			Right:
+			{
+				frames: [0, 1],
+				speed: 0.3
+			},
+			Left:
+			{
+				frames: [2, 3],
+				speed: 0.3
+			},
+			Up:
+			{
+				frames: [4, 5],
+				speed: 0.3
+			},
+			Down:
+			{
+				frames: [6, 7],
+				speed: 0.3
+			},
+		}
+}
+	);
+
+	pacman = new createjs.Sprite( pacmanSheet );
+
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
@@ -276,6 +317,12 @@ function gameInit()
 	mouseYDisplay.y = scoreDisplay.getMeasuredHeight() + mouseYDisplay.getMeasuredHeight();
 	stage.addChild( mouseYDisplay );
 
+	pacman.x = stage.canvas.width / 2;
+	pacman.y = stage.canvas.height / 2;
+	pacman.gotoAndPlay( "Left" );
+	lastKey = 0;
+	stage.addChild( pacman );
+
 	time = 0;
 	stage.on( "stagemousemove", mouseCoord );
 	gameInitialized = true;
@@ -290,6 +337,8 @@ function gameDelete()
 	gameInitialized = false;
 }
 
+var lastKey;
+
 function gameUpdate()
 {
 	if(!gameInitialized)
@@ -303,6 +352,27 @@ function gameUpdate()
 		score = Math.floor(time * 10);
 		scoreDisplay.text = "Score: " + score;
 		if ( time >= 10 ) mode = MODE_GAMEOVER;
+
+		if(lastKey === KEYCODE_A || lastKey === KEYCODE_LEFT)
+		{
+			if( pacman.currentAnimation != "Left" ) pacman.gotoAndPlay( "Left" );
+			pacman.x -= 5;
+		}
+		else if(lastKey === KEYCODE_W || lastKey === KEYCODE_UP)
+		{
+			if(pacman.currentAnimation != "Up") pacman.gotoAndPlay( "Up" );
+			pacman.y -= 5;
+		}
+		else if(lastKey === KEYCODE_D || lastKey === KEYCODE_RIGHT )
+		{
+			if ( pacman.currentAnimation != "Right" ) pacman.gotoAndPlay( "Right" );
+			pacman.x += 5;
+		}
+		else if(lastKey === KEYCODE_S || lastKey === KEYCODE_DOWN )
+		{
+			if ( pacman.currentAnimation != "Down" ) pacman.gotoAndPlay( "Down" );
+			pacman.y += 5;
+		}
 	}
 
 }
@@ -456,6 +526,7 @@ function handleKeyDown(evt)
 				break;
 			}
 	}
+	lastKey = evt.keyCode;
 }
 
 function handleKeyUp( evt )

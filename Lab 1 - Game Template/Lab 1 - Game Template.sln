@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30626.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Lab 1 - Game Template(1)", "http://localhost:52831", "{446896C1-3578-4508-93D4-315064BBAFB8}"
 	ProjectSection(WebsiteProperties) = preProject
@@ -26,6 +26,7 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Lab 1 - Game Template(1)", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{14670560-24AE-4EB1-83E3-DA79EF870F96}"
 	ProjectSection(SolutionItems) = preProject
+		src\pacman.xcf = src\pacman.xcf
 		src\title.xcf = src\title.xcf
 		src\TitleButtons.xcf = src\TitleButtons.xcf
 	EndProjectSection
