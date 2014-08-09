@@ -253,6 +253,11 @@ function removeAll()
 	{
 		gameOverDelete();
 	}
+
+	if(loadingInitialized)
+	{
+		loadingDelete();
+	}
 }
 
 
@@ -350,6 +355,8 @@ function levelFrameAniFinished(tween)
 {
 	levelFrameContainer.x = levelFrame.image.width / -2;
 	levelFrameContainer.y = stage.canvas.height / 2;
+	levelFrameContainer.scaleX = 1;
+	levelFrameContainer.scaleY = 1;
 	levelFrameContainer.visible = false;
 	levelFrameAnimator = null;
 	animated = true;
@@ -362,7 +369,7 @@ function showLevelFrame()
 	levelFrameAnimator = new createjs.Tween.get( levelFrameContainer, { loop: false } )
 	.to( { x: stage.canvas.width / 2, y: stage.canvas.height / 2 , rotation: 0}, 1000, createjs.Ease.bounceOut )
 	.wait( 2000 )
-	.to( { x: stage.canvas.width + ( levelFrame.image.width / 2 ), y: ( levelFrame.image.height / -2 ) }, 1000, createjs.Ease.sineIn )
+	.to( { x: stage.canvas.width + ( levelFrame.image.width / 2 ), y: ( levelFrame.image.height / -2 ), scaleX: 0, scaleY: 0 }, 1000, createjs.Ease.sineIn )
 	.call( levelFrameAniFinished );
 	animated = false;
 }
@@ -388,6 +395,8 @@ function gameInit()
 	levelFrameContainer.regY = levelFrame.image.height / 2;
 	levelFrameContainer.x = levelFrame.image.width / -2;
 	levelFrameContainer.y = stage.canvas.height / 2;
+	levelFrameContainer.scaleX = 1;
+	levelFrameContainer.scaleY = 1;
 	levelFrameContainer.visible = false;
 	stage.addChild( levelFrameContainer );
 
@@ -533,28 +542,87 @@ function gameOverUpdate()
 
 //#endregion
 
+//#region loading
+var loadingInitialized = false;
+var barBorder, progressBar, loadingText;
+var loadingTextWidth;
+function loadingInit()
+{
+	loadingText = new createjs.Text( "Loading", "80px Comic Sans MS", "#FFF" );
+	loadingTextWidth = loadingText.getMeasuredWidth();
+	var loadingTextHeight = loadingText.getMeasuredHeight();
+	loadingText.regX = loadingTextWidth / 2;
+	loadingText.regY = loadingTextHeight;
+	loadingText.x = stage.canvas.width / 2;
+	loadingText.y = stage.canvas.height / 2;
+	stage.addChild( loadingText );
+
+	
+
+	barBorder = new createjs.Shape();
+	barBorder.graphics.beginStroke( "#FFF" ).drawRect( 0, 0, loadingTextWidth, 10 );
+	barBorder.x = ( stage.canvas.width / 2 ) - ( loadingTextWidth / 2 );
+	barBorder.y = ( stage.canvas.height / 2 ) + ( loadingTextHeight / 2 );
+	stage.addChild( barBorder );
+
+	progressBar = new createjs.Shape();
+	progressBar.graphics.beginFill( "#FFF" ).drawRect( 0, 0, 0, 10 );
+	progressBar.x = ( stage.canvas.width / 2 ) - ( loadingTextWidth / 2 );
+	progressBar.y = ( stage.canvas.height / 2 ) + ( loadingTextHeight / 2 );
+	stage.addChild( progressBar );
+
+	loadingInitialized = true;
+}
+
+function loadingDelete()
+{
+	stage.removeAllChildren();
+	loadingText = null;
+	loadingInitialized = false;
+}
+
+function loadingUpdate(queue)
+{
+	if(!loadingInitialized)
+	{
+		removeAll();
+		loadingInit();
+	}
+	else
+	{
+		if ( queue == null ) progressBar.graphics.beginFill( "#FFF" ).drawRect( 0, 0, 0, 10 );
+		else progressBar.graphics.beginFill( "#FFF" ).drawRect( 0, 0, loadingTextWidth * queue.progress, 10 );
+		
+	}
+}
+//#endregion
+
 function loop()
 {
 	switch ( mode )
 	{
 		case ( MODE_TITLE ):
 			{
-				if(titleQueue != null && titleQueue.loaded) titleUpdate();
+				if ( titleQueue != null && titleQueue.loaded ) titleUpdate();
+				else loadingUpdate( titleQueue );
 				break;
 			}
 		case(MODE_INSTRUCTIONS):
 			{
-				if(instructionQueue != null && instructionQueue.loaded)  instructionsUpdate();
+				if ( instructionQueue != null && instructionQueue.loaded ) instructionsUpdate();
+				else loadingUpdate( instructionQueue );
 				break;
 			}
 			case(MODE_GAME):
 			{
-				if(gameQueue != null && gameQueue.loaded) gameUpdate();
+				if ( gameQueue != null && gameQueue.loaded ) gameUpdate();
+				else loadingUpdate( gameQueue );
 				break;
 			}
 		case ( MODE_GAMEOVER ):
 			{
 				if ( gameQueue != null && gameQueue.loaded ) gameOverUpdate();
+				else loadingUpdate( gameQueue );
 				break;
 			}
 	}
