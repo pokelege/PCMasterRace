@@ -387,11 +387,144 @@ function main()
 	createjs.Ticker.setFPS( FPS );
 }
 
+var KEYCODE_LEFT = 37;
+var KEYCODE_UP = 38;
+var KEYCODE_RIGHT = 39;
+var KEYCODE_DOWN = 40;
+
+var KEYCODE_A = 65;
+var KEYCODE_W = 87;
+var KEYCODE_D = 68;
+var KEYCODE_S = 83;
+
+var KEYCODE_SPACE = 32;
+
+function handleKeyDown(evt)
+{
+	if ( !evt ) { var evt = window.event; }
+	switch ( evt.keyCode )
+	{
+		case KEYCODE_LEFT:
+			{
+				console.log( "left key down" );
+				break;
+			}
+		case KEYCODE_RIGHT:
+			{
+				console.log( "right key down" );
+				break;
+			}
+		case KEYCODE_UP:
+			{
+				console.log( "up key down" );
+				break;
+			}
+		case KEYCODE_DOWN:
+			{
+				console.log( "down key down" );
+				break;
+			}
+
+		case KEYCODE_A:
+			{
+				console.log( "A key down" );
+				break;
+			}
+		case KEYCODE_W:
+			{
+				console.log( "W key down" );
+				break;
+			}
+		case KEYCODE_D:
+			{
+				console.log( "D key down" );
+				break;
+			}
+		case KEYCODE_S:
+			{
+				console.log( "S key down" );
+				break;
+			}
+		case KEYCODE_SPACE:
+			{
+				console.log( "Space key down" );
+				break;
+			}
+		default:
+			{
+				console.log( "unknown key code " + evt.keyCode + " down" );
+				break;
+			}
+	}
+}
+
+function handleKeyUp( evt )
+{
+	if ( !evt ) { var evt = window.event; }
+	switch ( evt.keyCode )
+	{
+		case KEYCODE_LEFT:
+			{
+				console.log("left key up" );
+				break;
+			}
+		case KEYCODE_RIGHT:
+			{
+				console.log( "right key up" );
+				break;
+			}
+		case KEYCODE_UP:
+			{
+				console.log( "up key up" );
+				break;
+			}
+		case KEYCODE_DOWN:
+			{
+				console.log( "down key up" );
+				break;
+			}
+		case KEYCODE_A:
+			{
+				console.log( "A key up" );
+				break;
+			}
+		case KEYCODE_W:
+			{
+				console.log( "W key up" );
+				break;
+			}
+		case KEYCODE_D:
+			{
+				console.log( "D key up" );
+				break;
+			}
+		case KEYCODE_S:
+			{
+				console.log( "S key up" );
+				break;
+			}
+		case KEYCODE_SPACE:
+			{
+				console.log( "Space key up" );
+				break;
+			}
+		default:
+			{
+				console.log( "unknown key code " + evt.keyCode + " up" );
+				break;
+			}
+	}
+}
+
 if ( !!( window.addEventListener ) )
 {
 	window.addEventListener( "DOMContentLoaded", main );
+	document.onkeydown = handleKeyDown;
+	document.onkeyup = handleKeyUp;
 }
 else
 { //MSIE
 	window.attachEvent( "onload", main );
+	document.onkeydown = handleKeyDown;
+	document.onkeyup = handleKeyUp;
 }
