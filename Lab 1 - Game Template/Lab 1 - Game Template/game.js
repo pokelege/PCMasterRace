@@ -1,5 +1,7 @@
 var MODE_TITLE = 0;
 var MODE_INSTRUCTIONS = 1;
+var MODE_GAME = 2;
+var MODE_GAMEOVER = 3;
 var mode = MODE_TITLE;
 var TITLEBUTTONSIZE = 9;
 var titleManifest =
@@ -10,16 +12,17 @@ var titleManifest =
 
 var instructionManifest =
 	[
-			{ src: "instructions.png", id: "instructions" }
+			{ src: "instructions.jpg", id: "instructions" }
 	];
 
 var gameManifest =
 	[
-	{ src: "background.png", id: "background" },
-	{ src: "gameover.png", id: "gameover" },
+	{ src: "background.jpg", id: "background" },
+	{ src: "gameover.jpg", id: "gameover" },
 	{ src: "levelsign.png", id: "levelsign" }
 	];
 var FPS = 30;
+var SPF = 1 / FPS;
 var stage;
 var titleQueue, titleScreen, playButton, menuButton;
 
@@ -148,10 +151,20 @@ function removeAll()
 	{
 		instructionsDelete();
 	}
+	
+	if(gameInitialized)
+	{
+		gameDelete();
+	}
+
+	if(gameOverInitialized)
+	{
+		gameOverDelete();
+	}
 }
 
 
-//#region
+//#region title
 var titleInitialized = false;
 function titleInit()
 {
@@ -166,7 +179,7 @@ function titleInit()
 	playButton.on( "mouseover", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
 	playButton.on( "mouseout", function playHover( evt ) { playButton.gotoAndPlay( "Hover" ); }, this );
 	playButton.on( "mousedown", function playHover( evt ) { playButton.gotoAndPlay( "Click" ); }, this );
-	playButton.on( "click", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
+	playButton.on( "click", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); mode = MODE_GAME; }, this );
 
 	instructionsButton.gotoAndPlay( "Neutral" );
 	instructionsButton.on( "mouseover", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); }, this );
@@ -192,7 +205,7 @@ function titleUpdate()
 }
 //#endregion
 
-//#region
+//#region instructions
 var instructionsInitialized = false;
 function instructionsInit()
 {
@@ -225,6 +238,119 @@ function instructionsUpdate()
 }
 //#endregion
 
+//#region game
+var gameInitialized = false;
+var score = 0;
+var scoreDisplay, mouseXDisplay, mouseYDisplay;
+var time = 0;
+
+function mouseCoord(evt)
+{
+	mouseXDisplay.text = "Mouse X: " + Math.floor( evt.stageX );
+	mouseYDisplay.text = "Mouse Y: " + Math.floor( evt.stageY );
+}
+
+function gameInit()
+{
+	stage.addChild(backgroundScreen);
+	stage.addChild( menuButton );
+	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
+	menuButton.y = stage.canvas.height - ( 30 / 2 );
+	menuButton.gotoAndPlay( "Neutral" );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
+	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
+	score = 0;
+	
+	scoreDisplay = new createjs.Text("Score: " + score, "16px Arial", "#000");
+	scoreDisplay.x = 0;
+	scoreDisplay.y = 0;
+	stage.addChild( scoreDisplay );
+	
+	mouseXDisplay = new createjs.Text( "Mouse X: ", "16px Arial", "#000" );
+	mouseXDisplay.y = scoreDisplay.getMeasuredHeight();
+	stage.addChild( mouseXDisplay );
+
+	mouseYDisplay = new createjs.Text( "Mouse Y: ", "16px Arial", "#000" );
+	mouseYDisplay.y = scoreDisplay.getMeasuredHeight() + mouseYDisplay.getMeasuredHeight();
+	stage.addChild( mouseYDisplay );
+
+	time = 0;
+	stage.on( "stagemousemove", mouseCoord );
+	gameInitialized = true;
+}
+
+function gameDelete()
+{
+	stage.removeAllChildren();
+	stage.removeAllEventListeners();
+	menuButton.removeAllEventListeners();
+	scoreDisplay = mouseXDisplay = mouseYDisplay = null;
+	gameInitialized = false;
+}
+
+function gameUpdate()
+{
+	if(!gameInitialized)
+	{
+		removeAll();
+		gameInit();
+	}
+	else
+	{
+		time += SPF;
+		score = Math.floor(time * 10);
+		scoreDisplay.text = "Score: " + score;
+		if ( time >= 10 ) mode = MODE_GAMEOVER;
+	}
+
+}
+//#endregion
+
+//#region game over
+var gameOverInitialized = false;
+function gameOverInit()
+{
+	stage.addChild( gameoverScreen );
+	stage.addChild( menuButton );
+	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
+	menuButton.y = stage.canvas.height - ( 30 / 2 );
+	menuButton.gotoAndPlay( "Neutral" );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
+	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
+
+	scoreDisplay = new createjs.Text( "Final Score: " + score, "16px Arial", "#000" );
+	scoreDisplay.regX = scoreDisplay.getMeasuredWidth() / 2;
+	scoreDisplay.regY = scoreDisplay.getMeasuredHeight() / 2;
+
+	scoreDisplay.x = stage.canvas.width / 2;
+	scoreDisplay.y = stage.canvas.height / 2;
+	stage.addChild( scoreDisplay );
+	gameOverInitialized = true;
+}
+
+function gameOverDelete()
+{
+	stage.removeAllChildren();
+	menuButton.removeAllEventListeners();
+	scoreDisplay = null;
+	gameOverInitialized = false;
+}
+
+function gameOverUpdate()
+{
+	if ( !gameOverInitialized )
+	{
+		removeAll();
+		gameOverInit();
+	}
+}
+
+//#endregion
+
 function loop()
 {
 	switch ( mode )
@@ -237,6 +363,16 @@ function loop()
 		case(MODE_INSTRUCTIONS):
 			{
 				if(instructionQueue != null && instructionQueue.loaded)  instructionsUpdate();
+				break;
+			}
+			case(MODE_GAME):
+			{
+				if(gameQueue != null && gameQueue.loaded) gameUpdate();
+				break;
+			}
+		case ( MODE_GAMEOVER ):
+			{
+				if ( gameQueue != null && gameQueue.loaded ) gameOverUpdate();
 				break;
 			}
 	}
