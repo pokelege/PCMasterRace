@@ -4,32 +4,35 @@ var MODE_GAME = 2;
 var MODE_GAMEOVER = 3;
 var mode = MODE_TITLE;
 var TITLEBUTTONSIZE = 9;
+var AUDIOBUTTIONSIZE = 6;
 var titleManifest =
 [
-	{ src: "title.jpg", id: "title" },
-	{ src: "titleButtons.jpg", id: "titleButtons" }
+	{ src: "images/title.jpg", id: "title" },
+	{ src: "images/titleButtons.jpg", id: "titleButtons" }
 ];
 
 var instructionManifest =
 	[
-			{ src: "instructions.jpg", id: "instructions" }
+			{ src: "images/instructions.jpg", id: "instructions" }
 	];
 var PACMANSIZE = 8;
 var gameManifest =
 	[
-	{ src: "background.jpg", id: "background" },
-	{ src: "gameover.jpg", id: "gameover" },
-	{ src: "levelsign.png", id: "levelsign" },
-	{ src: "pacman.png", id: "pacman" }
+	{ src: "images/background.jpg", id: "background" },
+	{ src: "images/gameover.jpg", id: "gameover" },
+	{ src: "images/levelsign.png", id: "levelsign" },
+	{ src: "images/pacman.png", id: "pacman" },
+	{ src: "images/audio.jpg", id: "audioButton" },
+	{ src: "audio/InGame.mp3", id:"music" }
 	];
 var FPS = 30;
 var SPF = 1 / FPS;
 var stage;
-var titleQueue, titleScreen, playButton, menuButton;
+var titleQueue, titleScreen, playButton, menuButton, audioButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, pacman;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, pacman, music;
 
 function setUpCanvas()
 {
@@ -42,7 +45,7 @@ function setUpCanvas()
 
 function startLoad()
 {
-	titleQueue = new createjs.LoadQueue( true, "assets/images/" );
+	titleQueue = new createjs.LoadQueue( true, "assets/" );
 	titleQueue.on( "complete", titleLoaded, this );
 	titleQueue.loadManifest( titleManifest );
 }
@@ -121,7 +124,7 @@ function titleLoaded()
 
 	menuButton = new createjs.Sprite( menuButtonSheet );
 
-	instructionQueue = new createjs.LoadQueue( true, "assets/images/" );
+	instructionQueue = new createjs.LoadQueue( true, "assets/" );
 	instructionQueue.on( "complete", instructionsLoaded, this );
 	instructionQueue.loadManifest( instructionManifest );
 }
@@ -130,7 +133,9 @@ function instructionsLoaded()
 {
 	instructionScreen = new createjs.Bitmap( instructionQueue.getResult( "instructions" ) );
 
-	gameQueue = new createjs.LoadQueue( true, "assets/images/" );
+	gameQueue = new createjs.LoadQueue( true, "assets/" );
+	createjs.Sound.alternateExtensions = ["mp3"];
+	gameQueue.installPlugin( createjs.Sound );
 	gameQueue.on( "complete", gameLoaded, this );
 	gameQueue.loadManifest( gameManifest );
 }
@@ -177,9 +182,55 @@ function gameLoaded()
 
 	pacman = new createjs.Sprite( pacmanSheet );
 
+	var audioButtonSheet = new createjs.SpriteSheet
+(
+{
+	images: [gameQueue.getResult( "audioButton" )],
+	frames:
+		{
+			regX: 30 / 2,
+			regY: 30 / 2,
+			width: 30,
+			height: 30,
+			count: AUDIOBUTTIONSIZE
+		},
+	animations:
+		{
+			OnNeutral:
+			{
+				frames: [0, 0],
+			},
+			OnHover:
+			{
+				frames: [1, 1],
+			},
+			OnClick:
+			{
+				frames: [2, 2],
+			},
+			OffNeutral:
+			{
+				frames: [3, 3],
+			},
+			OffHover:
+			{
+				frames: [4, 4],
+			},
+			OffClick:
+			{
+				frames: [5, 5],
+			}
+		}
+}
+);
+
+	audioButton = new createjs.Sprite( audioButtonSheet );
+
+
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
+	music = new createjs.Sound.createInstance( "music" );
 }
 
 function removeAll()
@@ -217,14 +268,14 @@ function titleInit()
 	instructionsButton.x = stage.canvas.width - ( 150 * 0.5 );
 	instructionsButton.y = stage.canvas.height - ( 30 / 2 );
 	playButton.gotoAndPlay( "Neutral" );
-	playButton.on( "mouseover", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
-	playButton.on( "mouseout", function playHover( evt ) { playButton.gotoAndPlay( "Hover" ); }, this );
+	playButton.on( "mouseout", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
+	playButton.on( "mouseover", function playHover( evt ) { playButton.gotoAndPlay( "Hover" ); }, this );
 	playButton.on( "mousedown", function playHover( evt ) { playButton.gotoAndPlay( "Click" ); }, this );
 	playButton.on( "click", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); mode = MODE_GAME; }, this );
 
 	instructionsButton.gotoAndPlay( "Neutral" );
-	instructionsButton.on( "mouseover", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); }, this );
-	instructionsButton.on( "mouseout", function playHover( evt ) { instructionsButton.gotoAndPlay( "Hover" ); }, this );
+	instructionsButton.on( "mouseout", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); }, this );
+	instructionsButton.on( "mouseover", function playHover( evt ) { instructionsButton.gotoAndPlay( "Hover" ); }, this );
 	instructionsButton.on( "mousedown", function playHover( evt ) { instructionsButton.gotoAndPlay( "Click" );  }, this );
 	instructionsButton.on( "click", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); mode = MODE_INSTRUCTIONS }, this );
 	titleInitialized = true;
@@ -255,8 +306,8 @@ function instructionsInit()
 	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
 	menuButton.y = stage.canvas.height - ( 30 / 2 );
 	menuButton.gotoAndPlay( "Neutral" );
-	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
-	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
 	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
 	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
 	instructionsInitialized = true;
@@ -282,26 +333,84 @@ function instructionsUpdate()
 //#region game
 var gameInitialized = false;
 var score = 0;
-var scoreDisplay, mouseXDisplay, mouseYDisplay;
+var scoreDisplay, mouseXDisplay, mouseYDisplay, levelFrameText;
 var time = 0;
-
+var level = 1;
+var levelFrameContainer;
+var animated = false;
+var levelFrameAnimator;
+var mute = false;
 function mouseCoord(evt)
 {
 	mouseXDisplay.text = "Mouse X: " + Math.floor( evt.stageX );
 	mouseYDisplay.text = "Mouse Y: " + Math.floor( evt.stageY );
 }
 
+function levelFrameAniFinished(tween)
+{
+	levelFrameContainer.x = levelFrame.image.width / -2;
+	levelFrameContainer.y = stage.canvas.height / 2;
+	levelFrameContainer.visible = false;
+	levelFrameAnimator = null;
+	animated = true;
+}
+
+function showLevelFrame()
+{
+	levelFrameText.text = level;
+	levelFrameContainer.visible = true;
+	levelFrameAnimator = new createjs.Tween.get( levelFrameContainer, { loop: false } )
+	.to( { x: stage.canvas.width / 2, y: stage.canvas.height / 2 , rotation: 0}, 1000, createjs.Ease.bounceOut )
+	.wait( 2000 )
+	.to( { x: stage.canvas.width + ( levelFrame.image.width / 2 ), y: ( levelFrame.image.height / -2 ) }, 1000, createjs.Ease.sineIn )
+	.call( levelFrameAniFinished );
+	animated = false;
+}
+
 function gameInit()
 {
-	stage.addChild(backgroundScreen);
+	stage.addChild( backgroundScreen );
+	pacman.x = stage.canvas.width / 2;
+	pacman.y = stage.canvas.height / 2;
+	pacman.gotoAndPlay( "Left" );
+	lastKey = 0;
+	stage.addChild( pacman );
+
+	levelFrameText = new createjs.Text( level, "80px Comic Sans MS", "#FFF" );
+	levelFrameText.regX = levelFrameText.getMeasuredWidth() / 2;
+	levelFrameText.regY = levelFrameText.getMeasuredHeight() / 2;
+	levelFrameText.x = levelFrame.image.width / 2;
+	levelFrameText.y = levelFrame.image.height / 2;
+
+	levelFrameContainer = new createjs.Container();
+	levelFrameContainer.addChild( levelFrame, levelFrameText );
+	levelFrameContainer.regX = levelFrame.image.width / 2;
+	levelFrameContainer.regY = levelFrame.image.height / 2;
+	levelFrameContainer.x = levelFrame.image.width / -2;
+	levelFrameContainer.y = stage.canvas.height / 2;
+	levelFrameContainer.visible = false;
+	stage.addChild( levelFrameContainer );
+
 	stage.addChild( menuButton );
 	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
 	menuButton.y = stage.canvas.height - ( 30 / 2 );
 	menuButton.gotoAndPlay( "Neutral" );
-	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
-	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
 	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
 	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
+
+	stage.addChild( audioButton );
+	audioButton.x = ( 30 * 0.5 );
+	audioButton.y = stage.canvas.height - ( 30 * 0.5 );
+	if ( mute ) audioButton.gotoAndPlay( "OffNeutral" );
+	else audioButton.gotoAndPlay("OnNeutral");
+	audioButton.on( "mouseout", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffNeutral" ); else audioButton.gotoAndPlay( "OnNeutral" ); }, this );
+	audioButton.on( "mouseover", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffHover" ); else audioButton.gotoAndPlay( "OnHover" ); }, this );
+	audioButton.on( "mousedown", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffClick" ); else audioButton.gotoAndPlay( "OnClick" ); }, this );
+	audioButton.on( "click", function playHover( evt ) { mute = mute == false; if ( mute ) audioButton.gotoAndPlay( "OffNeutral" ); else audioButton.gotoAndPlay( "OnNeutral" ); }, this );
+
+
 	score = 0;
 	
 	scoreDisplay = new createjs.Text("Score: " + score, "16px Arial", "#000");
@@ -317,14 +426,9 @@ function gameInit()
 	mouseYDisplay.y = scoreDisplay.getMeasuredHeight() + mouseYDisplay.getMeasuredHeight();
 	stage.addChild( mouseYDisplay );
 
-	pacman.x = stage.canvas.width / 2;
-	pacman.y = stage.canvas.height / 2;
-	pacman.gotoAndPlay( "Left" );
-	lastKey = 0;
-	stage.addChild( pacman );
-
 	time = 0;
 	stage.on( "stagemousemove", mouseCoord );
+	music.play( { loop: -1 } );
 	gameInitialized = true;
 }
 
@@ -332,8 +436,11 @@ function gameDelete()
 {
 	stage.removeAllChildren();
 	stage.removeAllEventListeners();
+	music.stop();
 	menuButton.removeAllEventListeners();
-	scoreDisplay = mouseXDisplay = mouseYDisplay = null;
+	audioButton.removeAllEventListeners();
+	createjs.Tween.removeAllTweens();
+	scoreDisplay = mouseXDisplay = mouseYDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = null;
 	gameInitialized = false;
 }
 
@@ -345,33 +452,38 @@ function gameUpdate()
 	{
 		removeAll();
 		gameInit();
+		showLevelFrame();
 	}
 	else
 	{
-		time += SPF;
-		score = Math.floor(time * 10);
-		scoreDisplay.text = "Score: " + score;
-		if ( time >= 10 ) mode = MODE_GAMEOVER;
+		music.setMute( mute );
+		if ( animated )
+		{
+			time += SPF;
+			score = Math.floor( time * 10 );
+			scoreDisplay.text = "Score: " + score;
+			if ( time >= 10 ) mode = MODE_GAMEOVER;
 
-		if(lastKey === KEYCODE_A || lastKey === KEYCODE_LEFT)
-		{
-			if( pacman.currentAnimation != "Left" ) pacman.gotoAndPlay( "Left" );
-			pacman.x -= 5;
-		}
-		else if(lastKey === KEYCODE_W || lastKey === KEYCODE_UP)
-		{
-			if(pacman.currentAnimation != "Up") pacman.gotoAndPlay( "Up" );
-			pacman.y -= 5;
-		}
-		else if(lastKey === KEYCODE_D || lastKey === KEYCODE_RIGHT )
-		{
-			if ( pacman.currentAnimation != "Right" ) pacman.gotoAndPlay( "Right" );
-			pacman.x += 5;
-		}
-		else if(lastKey === KEYCODE_S || lastKey === KEYCODE_DOWN )
-		{
-			if ( pacman.currentAnimation != "Down" ) pacman.gotoAndPlay( "Down" );
-			pacman.y += 5;
+			if ( lastKey === KEYCODE_A || lastKey === KEYCODE_LEFT )
+			{
+				if ( pacman.currentAnimation != "Left" ) pacman.gotoAndPlay( "Left" );
+				pacman.x -= 5;
+			}
+			else if ( lastKey === KEYCODE_W || lastKey === KEYCODE_UP )
+			{
+				if ( pacman.currentAnimation != "Up" ) pacman.gotoAndPlay( "Up" );
+				pacman.y -= 5;
+			}
+			else if ( lastKey === KEYCODE_D || lastKey === KEYCODE_RIGHT )
+			{
+				if ( pacman.currentAnimation != "Right" ) pacman.gotoAndPlay( "Right" );
+				pacman.x += 5;
+			}
+			else if ( lastKey === KEYCODE_S || lastKey === KEYCODE_DOWN )
+			{
+				if ( pacman.currentAnimation != "Down" ) pacman.gotoAndPlay( "Down" );
+				pacman.y += 5;
+			}
 		}
 	}
 
