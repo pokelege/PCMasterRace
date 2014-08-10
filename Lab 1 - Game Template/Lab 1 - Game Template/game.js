@@ -1,7 +1,7 @@
-var MODE_TITLE = 0;
-var MODE_INSTRUCTIONS = 1;
-var MODE_GAME = 2;
-var MODE_GAMEOVER = 3;
+var MODE_TITLE = "title";
+var MODE_INSTRUCTIONS = "instructions";
+var MODE_GAME = "game";
+var MODE_GAMEOVER = "gameover";
 var mode = MODE_TITLE;
 var TITLEBUTTONSIZE = 9;
 var AUDIOBUTTIONSIZE = 6;
@@ -544,10 +544,17 @@ function gameOverUpdate()
 
 //#region loading
 var loadingInitialized = false;
-var barBorder, progressBar, loadingText;
+var barBorder, progressBar, loadingText, backgroundColor;
 var loadingTextWidth;
 function loadingInit()
 {
+	backgroundColor = new createjs.Shape();
+	backgroundColor.graphics.beginFill( "#000" ).drawRect( 0, 0, stage.canvas.width, stage.canvas.height );
+	backgroundColor.x = 0;
+	backgroundColor.y = 0;
+	stage.addChild( backgroundColor );
+
+
 	loadingText = new createjs.Text( "Loading", "80px Comic Sans MS", "#FFF" );
 	loadingTextWidth = loadingText.getMeasuredWidth();
 	var loadingTextHeight = loadingText.getMeasuredHeight();
@@ -577,7 +584,7 @@ function loadingInit()
 function loadingDelete()
 {
 	stage.removeAllChildren();
-	loadingText = null;
+	backgroundColor = loadingText = barBorder = progressBar = null;
 	loadingInitialized = false;
 }
 
@@ -597,35 +604,37 @@ function loadingUpdate(queue)
 }
 //#endregion
 
-function loop()
-{
-	switch ( mode )
+gamestate =
 	{
-		case ( MODE_TITLE ):
+		"title":
+			function()
 			{
 				if ( titleQueue != null && titleQueue.loaded ) titleUpdate();
 				else loadingUpdate( titleQueue );
-				break;
-			}
-		case(MODE_INSTRUCTIONS):
+			},
+		"instructions":
+			function()
 			{
 				if ( instructionQueue != null && instructionQueue.loaded ) instructionsUpdate();
 				else loadingUpdate( instructionQueue );
-				break;
-			}
-			case(MODE_GAME):
+			},
+		"game":
+			function()
 			{
 				if ( gameQueue != null && gameQueue.loaded ) gameUpdate();
 				else loadingUpdate( gameQueue );
-				break;
-			}
-		case ( MODE_GAMEOVER ):
+			},
+		"gameover":
+			function()
 			{
 				if ( gameQueue != null && gameQueue.loaded ) gameOverUpdate();
 				else loadingUpdate( gameQueue );
-				break;
 			}
 	}
+
+function loop()
+{
+	gamestate[mode]();
 	stage.update();
 }
 
