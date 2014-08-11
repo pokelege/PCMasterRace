@@ -6,6 +6,7 @@ var mode = MODE_TITLE;
 var TITLEBUTTONSIZE = 9;
 var AUDIOBUTTIONSIZE = 6;
 var MAINFPS = 30;
+
 var titleManifest =
 [
 	{ src: "images/title.jpg", id: "title" },
@@ -30,7 +31,7 @@ var titleQueue, titleScreen, playButton, menuButton, audioButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, character;
 
 function setUpCanvas()
 {
@@ -185,11 +186,34 @@ function gameLoaded()
 
 	audioButton = new createjs.Sprite( audioButtonSheet );
 
+	var characterSheet = new createjs.SpriteSheet
+	(
+		{
+			images: [gameQueue.getResult( "character" )],
+			frames:
+				{
+					regX: 75 / 2,
+					regY: 150 / 2,
+					width: 75,
+					height: 150,
+					count: 1
+				},
+			animations:
+				{
+					NeutralFront:
+						{
+							frames:[0,0]
+						}
+				}
+		}
+	);
+	character = new createjs.Sprite( characterSheet, "NeutralFront" );
 
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
 	music = new createjs.Sound.createInstance( "music" );
+	
 }
 
 function removeAll()
@@ -296,20 +320,17 @@ function instructionsUpdate()
 
 //#region game
 var gameInitialized = false;
+var GRAVITY = 5;
 var score = 0;
-var life = 30;
-var scoreDisplay, mouseXDisplay, mouseYDisplay, levelFrameText;
+var currentFPS = 30;
+var life = currentFPS;
+var scoreDisplay, lifeDisplay, levelFrameText;
 var time = 0;
 var level = 1;
 var levelFrameContainer;
 var animated = false;
 var levelFrameAnimator;
 var mute = false;
-function mouseCoord(evt)
-{
-	mouseXDisplay.text = "Mouse X: " + Math.floor( evt.stageX );
-	mouseYDisplay.text = "Mouse Y: " + Math.floor( evt.stageY );
-}
 
 function levelFrameAniFinished(tween)
 {
@@ -383,17 +404,19 @@ function gameInit()
 	scoreDisplay.y = 0;
 	stage.addChild( scoreDisplay );
 	
-	mouseXDisplay = new createjs.Text( "Mouse X: ", "16px Arial", "#000" );
-	mouseXDisplay.y = scoreDisplay.getMeasuredHeight();
-	stage.addChild( mouseXDisplay );
-
-	mouseYDisplay = new createjs.Text( "Mouse Y: ", "16px Arial", "#000" );
-	mouseYDisplay.y = scoreDisplay.getMeasuredHeight() + mouseYDisplay.getMeasuredHeight();
-	stage.addChild( mouseYDisplay );
+	lifeDisplay = new createjs.Text( "Life: ", "16px Arial", "#000" );
+	lifeDisplay.y = lifeDisplay.getMeasuredHeight();
+	stage.addChild( lifeDisplay );
 
 	time = 0;
-	stage.on( "stagemousemove", mouseCoord );
 	music.play( { loop: -1 } );
+
+	velocity.X = 0;
+	velocity.Y = 0;
+	character.x = 100;
+	character.y = 0;
+	stage.addChild( character );
+
 	gameInitialized = true;
 }
 
@@ -405,12 +428,12 @@ function gameDelete()
 	menuButton.removeAllEventListeners();
 	audioButton.removeAllEventListeners();
 	createjs.Tween.removeAllTweens();
-	scoreDisplay = mouseXDisplay = mouseYDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = null;
+	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = null;
 	gameInitialized = false;
 }
 
 var lastKey;
-
+var velocity = { X: 0, Y: 0 };
 function gameUpdate()
 {
 	if(!gameInitialized)
@@ -421,14 +444,21 @@ function gameUpdate()
 	}
 	else
 	{
-		createjs.Ticker.setFPS( life );
+		createjs.Ticker.setFPS( currentFPS );
 		music.setMute( mute );
+		if ( character.y - 75 >= stage.canvas.height || life < 1 ) mode = MODE_GAMEOVER;
 		if ( animated )
 		{
-			time += (1 / MAINFPS);
+			currentFPS = Math.floor( life );
+			time += (1 / currentFPS);
 			score = Math.floor( time * 10 );
-			scoreDisplay.text = "Score: " + score;
+			velocity.Y += ( GRAVITY * ( 1 / currentFPS ) );
+			character.x += velocity.X * ( 1 / currentFPS );
+			character.y += velocity.Y * ( 1 / currentFPS );
+			life -= 1;
 		}
+		scoreDisplay.text = "Score: " + score;
+		lifeDisplay.text = "Life: " + currentFPS + " fps";
 	}
 
 }

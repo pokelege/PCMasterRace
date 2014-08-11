@@ -24,6 +24,11 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Lab 2 - Make a Game(1)", "h
 		SlnRelativePath = "Lab 2 - Make a Game\"
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{19E36365-23BD-4823-9555-AE4918406E48}"
+	ProjectSection(SolutionItems) = preProject
+		src\Character.xcf = src\Character.xcf
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
