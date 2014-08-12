@@ -26,13 +26,15 @@ var gameManifest =
 	{ src: "audio/InGame.mp3", id: "music" },
 	{ src: "images/character.png", id: "character" },
 	{ src: "images/floor.png", id: "floor" },
+	{ src: "images/enemy.png", id: "enemy" },
+	{src: "images/health.png", id: "health"}
 	];
 var stage;
 var titleQueue, titleScreen, playButton, menuButton, audioButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, character, floor;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, character, enemy, health, floor;
 
 function setUpCanvas()
 {
@@ -210,6 +212,53 @@ function gameLoaded()
 	);
 	character = new createjs.Sprite( characterSheet, "NeutralFront" );
 
+
+	var enemySheet = new createjs.SpriteSheet
+		(
+		{
+			images: [gameQueue.getResult( "enemy" )],
+			frames:
+				{
+					regX: 50,
+					regY: 50,
+					width: 100,
+					height: 100,
+					count: 1
+				},
+			animations:
+				{
+					Neutral:
+						{
+							frames: [0, 0]
+						}
+				}
+		}
+		);
+	enemy = new createjs.Sprite( enemySheet, "Neutral" );
+
+	var healthSheet = new createjs.SpriteSheet
+	(
+		{
+			images: [gameQueue.getResult( "health" )],
+			frames:
+				{
+					regX: 50,
+					regY: 50,
+					width: 100,
+					height: 100,
+					count: 1
+				},
+			animations:
+				{
+					Neutral:
+						{
+							frames:[0,0]
+						}
+				}
+		}
+	);
+	health = new createjs.Sprite( healthSheet, "Neutral" );
+
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
@@ -342,6 +391,17 @@ var lastDistance =
 		distance: 0,
 		index:0
 	};
+var enemyArray;
+var lastEnemySpawn =
+	{
+		index:0
+	};
+
+var healthArray;
+var lastHealthSpawn =
+	{
+		index:0
+	}
 
 function levelFrameAniFinished( tween )
 {
@@ -390,14 +450,26 @@ function gameInit()
 	lastDistance.distance = ( floorArray[0].getBounds().width * floorArray[0].scaleX );
 	lastDistance.index = 0;
 	stage.addChild( floorArray[0] );
+	enemyArray = new Array();
+	healthArray = new Array();
 	for ( i = 1; i < 10; i++ )
 	{
 		floorArray.push( floor.clone() );
 		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX) + floorArray[lastDistance.index].x;
-		floorArray[i].y = stage.canvas.height * Math.random();
+		floorArray[i].y = ( ( stage.canvas.height - ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 		lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 		lastDistance.index = i;
 		stage.addChild( floorArray[i] );
+		enemyArray.push( enemy.clone() );
+		enemyArray[i - 1].x = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) * Math.random() ) + floorArray[i].x;
+		enemyArray[i - 1].y = ( ( stage.canvas.height - ( enemyArray[i - 1].getBounds().height * enemyArray[i - 1].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[i - 1].getBounds().height * enemyArray[i - 1].scaleY );
+		stage.addChild( enemyArray[i - 1] );
+		lastEnemySpawn.index = i - 1;
+		healthArray.push( health.clone() );
+		healthArray[i - 1].x = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) * Math.random() ) + floorArray[i].x;
+		healthArray[i - 1].y = ( ( stage.canvas.height - ( healthArray[i - 1].getBounds().height * healthArray[i - 1].scaleY ) ) * Math.random() ) + ( 2 * healthArray[i - 1].getBounds().height * healthArray[i - 1].scaleY );
+		stage.addChild( healthArray[i - 1] );
+		lastHealthSpawn.index = i - 1;
 	}
 
 	levelFrameText = new createjs.Text( level, "80px Comic Sans MS", "#FFF" );
@@ -455,7 +527,7 @@ function gameDelete()
 	menuButton.removeAllEventListeners();
 	audioButton.removeAllEventListeners();
 	createjs.Tween.removeAllTweens();
-	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = floorArray = null;
+	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = floorArray = enemyArray = healthArray = null;
 	gameInitialized = false;
 }
 
@@ -511,11 +583,32 @@ function processMovement()
 		if(( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0)
 		{
 			floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
-			floorArray[i].y = stage.canvas.height * Math.random();
+			floorArray[i].y = ( ( stage.canvas.height - ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 			lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 			lastDistance.index = i;
 		}
 		floorArray[i].alpha = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x ) / ( floorArray[i].getBounds().width * floorArray[i].scaleX );
+	}
+	for ( i = 0; i < enemyArray.length; i++ )
+	{
+		enemyArray[i].x -= scrollspeed * ( 1 / life );
+		if(( enemyArray[i].getBounds().width * enemyArray[i].scaleX ) + enemyArray[i].x <= 0)
+		{
+			enemyArray[i].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
+			enemyArray[i].y = ( ( stage.canvas.height - ( enemyArray[i].getBounds().height * enemyArray[i].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[i].getBounds().height * enemyArray[i].scaleY );
+			lastEnemySpawn.index = i;
+		}
+	}
+
+	for ( i = 0; i < healthArray.length; i++ )
+	{
+		healthArray[i].x -= scrollspeed * ( 1 / life );
+		if ( ( healthArray[i].getBounds().width * healthArray[i].scaleX ) + healthArray[i].x <= 0 )
+		{
+			healthArray[i].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
+			healthArray[i].y = ( ( stage.canvas.height - ( healthArray[i].getBounds().height * healthArray[i].scaleY ) ) * Math.random() ) + ( 2 * healthArray[i].getBounds().height * healthArray[i].scaleY );
+			lastHealthSpawn.index = i;
+		}
 	}
 	character.x -= scrollspeed * ( 1 / life );
 }
@@ -530,6 +623,42 @@ function processCollisions()
 			character.y -= collided.height;
 			if ( jumpPressed ) velocity.Y = -300;
 			else velocity.Y = 0;
+		}
+
+		for ( j = 0; j < healthArray.length; j++ )
+		{
+			var healthFloorCollision = ndgmr.checkRectCollision( healthArray[j], floorArray[i] );
+			if ( healthFloorCollision )
+			{
+				healthArray[j].y -= healthFloorCollision.height;
+			}
+
+			var playerHitHealth = ndgmr.checkRectCollision( character, healthArray[j] );
+			if ( playerHitHealth )
+			{
+				life += 1;
+				healthArray[j].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
+				healthArray[j].y = ( ( stage.canvas.height - ( healthArray[j].getBounds().height * healthArray[j].scaleY ) ) * Math.random() ) + ( 2 * healthArray[j].getBounds().height * healthArray[j].scaleY );
+				lastHealthSpawn.index = j;
+			}
+		}
+
+		for(j = 0; j < enemyArray.length; j++)
+		{
+			var enemyFloorCollision = ndgmr.checkRectCollision( enemyArray[j], floorArray[i] );
+			if(enemyFloorCollision)
+			{
+				enemyArray[j].y -= enemyFloorCollision.height;
+			}
+
+			var playerHitEnemy = ndgmr.checkRectCollision( character, enemyArray[j] );
+			if(playerHitEnemy)
+			{
+				life -= 1;
+				enemyArray[j].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
+				enemyArray[j].y = ( ( stage.canvas.height - ( enemyArray[j].getBounds().height * enemyArray[j].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[j].getBounds().height * enemyArray[j].scaleY );
+				lastEnemySpawn.index = j;
+			}
 		}
 	}
 }

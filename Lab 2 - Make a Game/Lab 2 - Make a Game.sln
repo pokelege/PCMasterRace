@@ -27,7 +27,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{19E36365-23BD-4823-9555-AE4918406E48}"
 	ProjectSection(SolutionItems) = preProject
 		src\Character.xcf = src\Character.xcf
+		src\Enemy.xcf = src\Enemy.xcf
 		src\floor.xcf = src\floor.xcf
+		src\Health.xcf = src\Health.xcf
 	EndProjectSection
 EndProject
 Global
