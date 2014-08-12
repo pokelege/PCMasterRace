@@ -337,7 +337,11 @@ var levelFrameAnimator;
 var mute = false;
 
 var floorArray;
-
+var lastDistance =
+	{
+		distance: 0,
+		index:0
+	};
 
 function levelFrameAniFinished( tween )
 {
@@ -370,7 +374,7 @@ function gameInit()
 
 	score = 0;
 	life = 30;
-
+	scrollspeed = 10;
 	time = 0;
 	music.play( { loop: -1 } );
 
@@ -383,15 +387,18 @@ function gameInit()
 	floorArray = new Array();
 	floorArray.push( floor.clone() );
 	floorArray[0].y = stage.canvas.height;
+	lastDistance.distance = ( floorArray[0].getBounds().width * floorArray[0].scaleX );
+	lastDistance.index = 0;
 	stage.addChild( floorArray[0] );
 	for ( i = 1; i < 10; i++ )
 	{
 		floorArray.push( floor.clone() );
-		floorArray[i].x = ( floorArray[i - 1].getBounds().width * floorArray[i - 1].scaleX) + floorArray[i - 1].x;
+		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX) + floorArray[lastDistance.index].x;
 		floorArray[i].y = stage.canvas.height * Math.random();
+		lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
+		lastDistance.index = i;
 		stage.addChild( floorArray[i] );
 	}
-
 
 	levelFrameText = new createjs.Text( level, "80px Comic Sans MS", "#FFF" );
 	levelFrameText.regX = levelFrameText.getMeasuredWidth() / 2;
@@ -448,13 +455,13 @@ function gameDelete()
 	menuButton.removeAllEventListeners();
 	audioButton.removeAllEventListeners();
 	createjs.Tween.removeAllTweens();
-	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = null;
+	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = floorArray = null;
 	gameInitialized = false;
 }
 
 var lastKey;
 var velocity = { X: 0, Y: 0 };
-
+var damping = 0.9;
 function gameUpdate()
 {
 	if ( !gameInitialized )
@@ -472,6 +479,7 @@ function gameUpdate()
 		{
 			score += ( 10 / life );
 			processMovement();
+			velocity.X *= damping;
 			velocity.Y += ( GRAVITY * ( 1 / life ) );
 			character.x += velocity.X * ( 1 / life );
 			character.y += velocity.Y * ( 1 / life );
@@ -483,22 +491,31 @@ function gameUpdate()
 	}
 
 }
-var ACCELERATION = 200;
-var scrollspeed = 10;
+var ACCELERATION = 10;
+var scrollspeed;
 function processMovement()
 {
 	if(leftPressed)
 	{
-		velocity.X -= ACCELERATION * ( 1 / life );
+		velocity.X -= (ACCELERATION* scrollspeed) * ( 1 / life );
 	}
 	if(rightPressed)
 	{
-		velocity.X += ACCELERATION * ( 1 / life );
+		velocity.X += (ACCELERATION* scrollspeed) * ( 1 / life );
 	}
 	for ( i = 0; i < floorArray.length; i++ )
 	{
 		
 		floorArray[i].x -= scrollspeed * ( 1 / life );
+
+		if(( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0)
+		{
+			floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
+			floorArray[i].y = stage.canvas.height * Math.random();
+			lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
+			lastDistance.index = i;
+		}
+		floorArray[i].alpha = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x ) / ( floorArray[i].getBounds().width * floorArray[i].scaleX );
 	}
 	character.x -= scrollspeed * ( 1 / life );
 }
