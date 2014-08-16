@@ -6,7 +6,7 @@ var mode = MODE_TITLE;
 var TITLEBUTTONSIZE = 9;
 var AUDIOBUTTIONSIZE = 6;
 var MAINFPS = 30;
-
+var MAXFPS = 60;
 var titleManifest =
 [
 	{ src: "images/title.jpg", id: "title" },
@@ -27,14 +27,18 @@ var gameManifest =
 	{ src: "images/character.png", id: "character" },
 	{ src: "images/floor.png", id: "floor" },
 	{ src: "images/enemy.png", id: "enemy" },
-	{src: "images/health.png", id: "health"}
+	{ src: "images/health.png", id: "health" },
+	{ src: "images/fpsBar.png", id: "fpsBar" },
+	{ src: "images/bullet.png", id: "bullet" },
+	{ src: "audio/getHealth.mp3", id: "getHealth" },
+	{ src: "audio/shoot.mp3", id: "shoot" }
 	];
 var stage;
 var titleQueue, titleScreen, playButton, menuButton, audioButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, character, enemy, health, floor;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, character, enemy, health, fpsBar, bullet, floor;
 
 function setUpCanvas()
 {
@@ -206,6 +210,10 @@ function gameLoaded()
 					NeutralFront:
 						{
 							frames: [0, 0]
+						},
+					NeutralBack:
+						{
+							frames:[0,0]
 						}
 				}
 		}
@@ -252,17 +260,70 @@ function gameLoaded()
 				{
 					Neutral:
 						{
-							frames:[0,0]
+							frames: [0, 0]
 						}
 				}
 		}
 	);
 	health = new createjs.Sprite( healthSheet, "Neutral" );
 
+	var fpsBarSheet = new createjs.SpriteSheet
+		(
+		{
+			images: [gameQueue.getResult( "fpsBar" )],
+			frames:
+				{
+					regX: 0,
+					regY: 0,
+					width: 100,
+					height: 100,
+					count: 1
+				},
+			animations:
+				{
+					Good:
+						{
+							frames: [0, 0]
+						}
+				}
+		}
+		);
+	fpsBar = new createjs.Sprite( fpsBarSheet, "Good" );
+	fpsBar.scaleY = 0.1;
+	fpsBar.regY = 100 * 0.1 * 0.5;
+
+
+	var bulletSheet = new createjs.SpriteSheet
+		(
+		{
+			images: [gameQueue.getResult( "bullet" )],
+			frames:
+				{
+					regX: 0,
+					regY: 0,
+					width: 100,
+					height: 100,
+					count: 1
+				},
+			animations:
+				{
+					Normal:
+						{
+							frames: [0, 0]
+						}
+				}
+		}
+		);
+	bullet = new createjs.Sprite( bulletSheet, "Normal" );
+	bullet.scaleY = 0.1;
+	bullet.regY = 100 * 0.1 * 0.5;
+
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
 	music = new createjs.Sound.createInstance( "music" );
+	getHealth = new createjs.Sound.createInstance( "getHealth" );
+	shoot = new createjs.Sound.createInstance( "shoot" );
 	floor = new createjs.Bitmap( gameQueue.getResult( "floor" ) );
 	floor.regX = 0;
 	floor.regY = 100;
@@ -376,32 +437,33 @@ function instructionsUpdate()
 //#region game
 var gameInitialized = false;
 var GRAVITY = 200;
-var score = 0;
 var life = 30;
 var scoreDisplay, lifeDisplay, levelFrameText;
-var level = 1;
 var levelFrameContainer;
 var animated = false;
 var levelFrameAnimator;
 var mute = false;
-
+var highScore = 0;
 var floorArray;
+var distance;
+var distanceBoundary;
+var score;
 var lastDistance =
 	{
 		distance: 0,
-		index:0
+		index: 0
 	};
 var enemyArray;
-var lastEnemySpawn =
-	{
-		index:0
-	};
 
 var healthArray;
-var lastHealthSpawn =
-	{
-		index:0
-	}
+var jamieMode;
+function BulletInstance( bulletSprite )
+{
+	this.direction = 1;
+	this.sprite = bulletSprite;
+};
+
+var bulletArray;
 
 function levelFrameAniFinished( tween )
 {
@@ -416,7 +478,7 @@ function levelFrameAniFinished( tween )
 
 function showLevelFrame()
 {
-	levelFrameText.text = level;
+	levelFrameText.text = Math.floor( highScore );
 	levelFrameContainer.visible = true;
 	levelFrameAnimator = new createjs.Tween.get( levelFrameContainer, { loop: false } )
 	.to( { x: stage.canvas.width / 2, y: stage.canvas.height / 2, rotation: 0 }, 1000, createjs.Ease.bounceOut )
@@ -431,18 +493,13 @@ function gameInit()
 	stage.addChild( backgroundScreen );
 	lastKey = 0;
 
-
-	score = 0;
+	jamieHold = false;
+	jamieMode = false;
 	life = 30;
-	scrollspeed = 10;
+	scrollspeed = 50;
 	time = 0;
 	music.play( { loop: -1 } );
 
-	velocity.X = 0;
-	velocity.Y = 0;
-	character.x = 100;
-	character.y = stage.canvas.height / 2;
-	stage.addChild( character );
 
 	floorArray = new Array();
 	floorArray.push( floor.clone() );
@@ -450,29 +507,47 @@ function gameInit()
 	lastDistance.distance = ( floorArray[0].getBounds().width * floorArray[0].scaleX );
 	lastDistance.index = 0;
 	stage.addChild( floorArray[0] );
-	enemyArray = new Array();
-	healthArray = new Array();
-	for ( i = 1; i < 10; i++ )
+	for ( i = 1; i < 5; i++ )
 	{
 		floorArray.push( floor.clone() );
-		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX) + floorArray[lastDistance.index].x;
-		floorArray[i].y = ( ( stage.canvas.height - ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
+		floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+		//floorArray[i].y = ( Math.random() * ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 		lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 		lastDistance.index = i;
 		stage.addChild( floorArray[i] );
-		enemyArray.push( enemy.clone() );
-		enemyArray[i - 1].x = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) * Math.random() ) + floorArray[i].x;
-		enemyArray[i - 1].y = ( ( stage.canvas.height - ( enemyArray[i - 1].getBounds().height * enemyArray[i - 1].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[i - 1].getBounds().height * enemyArray[i - 1].scaleY );
-		stage.addChild( enemyArray[i - 1] );
-		lastEnemySpawn.index = i - 1;
-		healthArray.push( health.clone() );
-		healthArray[i - 1].x = ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) * Math.random() ) + floorArray[i].x;
-		healthArray[i - 1].y = ( ( stage.canvas.height - ( healthArray[i - 1].getBounds().height * healthArray[i - 1].scaleY ) ) * Math.random() ) + ( 2 * healthArray[i - 1].getBounds().height * healthArray[i - 1].scaleY );
-		stage.addChild( healthArray[i - 1] );
-		lastHealthSpawn.index = i - 1;
 	}
 
-	levelFrameText = new createjs.Text( level, "80px Comic Sans MS", "#FFF" );
+	velocity.X = 0;
+	velocity.Y = 0;
+	character.x = 100;
+	character.y = stage.canvas.height / 2;
+	stage.addChild( character );
+
+	enemyArray = new Array();
+	for ( i = 0; i < 5; i++ )
+	{
+		enemyArray.push( enemy.clone() );
+		enemyArray[i].visible = false;
+		stage.addChild( enemyArray[i] );
+	}
+
+	healthArray = new Array();
+	for ( i = 0; i < 3; i++ )
+	{
+		healthArray.push( health.clone() );
+		healthArray[i].visible = false;
+		stage.addChild( healthArray[i] );
+	}
+	bulletArray = new Array();
+	for ( i = 0; i < 3; i++ )
+	{
+		bulletArray.push( new BulletInstance( bullet.clone() ) );
+		bulletArray[i].sprite.visible = false;
+		stage.addChild( bulletArray[i].sprite );
+	}
+
+	levelFrameText = new createjs.Text( Math.floor( highScore ), "80px Comic Sans MS", "#FFF" );
 	levelFrameText.regX = levelFrameText.getMeasuredWidth() / 2;
 	levelFrameText.regY = levelFrameText.getMeasuredHeight() / 2;
 	levelFrameText.x = levelFrame.image.width / 2;
@@ -508,14 +583,24 @@ function gameInit()
 	audioButton.on( "mousedown", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffClick" ); else audioButton.gotoAndPlay( "OnClick" ); }, this );
 	audioButton.on( "click", function playHover( evt ) { mute = mute == false; if ( mute ) audioButton.gotoAndPlay( "OffNeutral" ); else audioButton.gotoAndPlay( "OnNeutral" ); }, this );
 
-	scoreDisplay = new createjs.Text( "Score: " + score, "16px Arial", "#000" );
+	score = 0;
+	distance = 0;
+	distanceBoundary = character.x;
+
+	scoreDisplay = new createjs.Text( "Score: " + distance, "16px Arial", "#000" );
 	scoreDisplay.x = 0;
 	scoreDisplay.y = 0;
 	stage.addChild( scoreDisplay );
 
-	lifeDisplay = new createjs.Text( "Life: ", "16px Arial", "#000" );
-	lifeDisplay.y = lifeDisplay.getMeasuredHeight();
+	lifeDisplay = new createjs.Text( "FPS: ", "16px Arial", "#000" );
+	lifeDisplay.y = scoreDisplay.getMeasuredHeight();
 	stage.addChild( lifeDisplay );
+
+	fpsBar.x = lifeDisplay.getBounds().width;
+	fpsBar.y = lifeDisplay.y + ( lifeDisplay.getMeasuredHeight() / 2 );
+	stage.addChild( fpsBar );
+	healthSpawn = healthSpawnInterval;
+	enemySpawn = enemySpawnInterval;
 	gameInitialized = true;
 }
 
@@ -524,6 +609,8 @@ function gameDelete()
 	stage.removeAllChildren();
 	stage.removeAllEventListeners();
 	music.stop();
+	getHealth.stop();
+	shoot.stop();
 	menuButton.removeAllEventListeners();
 	audioButton.removeAllEventListeners();
 	createjs.Tween.removeAllTweens();
@@ -531,9 +618,25 @@ function gameDelete()
 	gameInitialized = false;
 }
 
+var jamieHold = false;
+function jamieToggle()
+{
+	if ( !jamieHold && jamiePressed )
+	{
+		jamieMode = jamieMode == false;
+		jamieHold = true;
+	}
+	else if ( jamieHold && !jamiePressed ) jamieHold = false;
+}
+
 var lastKey;
 var velocity = { X: 0, Y: 0 };
-var damping = 0.9;
+var damping = 0.1;
+var healthSpawn;
+var healthSpawnInterval = 10;
+var enemySpawn;
+var enemySpawnInterval = 3;
+var SCROLLACCELERATION = 1;
 function gameUpdate()
 {
 	if ( !gameInitialized )
@@ -544,46 +647,131 @@ function gameUpdate()
 	}
 	else
 	{
-		createjs.Ticker.setFPS( life );
-		music.setMute( mute );
-		if ( character.y - 75 >= stage.canvas.height || life < 1 ) mode = MODE_GAMEOVER;
-		else if ( animated )
+		jamieToggle();
+		if ( jamieMode )
 		{
-			score += ( 10 / life );
-			processMovement();
-			velocity.X *= damping;
-			velocity.Y += ( GRAVITY * ( 1 / life ) );
-			character.x += velocity.X * ( 1 / life );
-			character.y += velocity.Y * ( 1 / life );
-			processCollisions();
-			scoreDisplay.text = "Score: " + score;
-			lifeDisplay.text = "Life: " + Math.floor( life ) + " fps";
-			scrollspeed += 0.1;
+			createjs.Ticker.setFPS( 30 );
+			music.setMute( mute );
+			if ( character.y - 75 >= stage.canvas.height || life < 1 )
+			{
+				mode = MODE_GAMEOVER;
+			}
+			else if ( animated )
+			{
+				if ( Math.random() <= 0.25 ) spawnHealth();
+				enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( enemySpawn <= 0 )
+				{
+					if ( Math.random() <= 0.5 ) spawnEnemy();
+					enemySpawn = enemySpawnInterval;
+				}
+				processMovement();
+				processCollisions();
+
+				if ( character.x - distanceBoundary > distance )
+				{
+					distance = character.x - distanceBoundary;
+				}
+
+				scoreDisplay.text = "Score: " + Math.floor(( distance / 100 ) + score );
+				fpsBar.scaleX = life / 30;
+				scrollspeed = 50;
+			}
+		}
+		else
+		{
+			createjs.Ticker.setFPS( life );
+			music.setMute( mute );
+			if ( character.y - 75 >= stage.canvas.height || life < 1 )
+			{
+				mode = MODE_GAMEOVER;
+			}
+			else if ( animated )
+			{
+				healthSpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( healthSpawn <= 0 )
+				{
+					if ( Math.random() <= 0.5 ) spawnHealth();
+					healthSpawn = healthSpawnInterval;
+				}
+				enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( enemySpawn <= 0 )
+				{
+					if ( Math.random() <= 0.9 ) spawnEnemy();
+					enemySpawn = enemySpawnInterval;
+				}
+				processMovement();
+				processCollisions();
+
+				if ( character.x - distanceBoundary > distance )
+				{
+					distance = character.x - distanceBoundary;
+				}
+
+				scoreDisplay.text = "Score: " + Math.floor(( distance / 100 ) + score );
+				fpsBar.scaleX = life / 30;
+				scrollspeed += SCROLLACCELERATION * ( 1 / createjs.Ticker.getFPS() );
+			}
 		}
 	}
-
 }
 var ACCELERATION = 10;
 var scrollspeed;
+var shot = false;
+var bulletVelocity = 5;
 function processMovement()
 {
-	if(leftPressed)
+	if ( leftPressed )
 	{
-		velocity.X -= (ACCELERATION* scrollspeed) * ( 1 / life );
+		velocity.X -= ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
+		character.gotoAndPlay( "NeutralBack" );
 	}
-	if(rightPressed)
+	if ( rightPressed )
 	{
-		velocity.X += (ACCELERATION* scrollspeed) * ( 1 / life );
+		velocity.X += ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
+		character.gotoAndPlay( "NeutralFront" );
 	}
+	if ( downPressed )
+	{
+		velocity.Y += ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
+	}
+
+	if ( firePressed && !shot )
+	{
+		for ( i = 0; i < bulletArray.length; i++ )
+		{
+			if ( !bulletArray[i].sprite.visible )
+			{
+				if ( character.currentAnimation == "NeutralFront" )
+				{
+					bulletArray[i].sprite.x = character.x + ( character.getBounds().width / 2 );
+					bulletArray[i].sprite.y = character.y;
+					bulletArray[i].direction = 1;
+				}
+				else if ( character.currentAnimation == "NeutralBack" )
+				{
+					bulletArray[i].sprite.x = character.x - ( character.getBounds().width / 2 ) - bulletArray[i].sprite.getBounds().width;
+					bulletArray[i].sprite.y = character.y;
+					bulletArray[i].direction = -1;
+				}
+				shoot.stop();
+				shoot.play();
+				bulletArray[i].sprite.visible = true;
+				shot = true;
+				break;
+			}
+		}
+	}
+	else if ( !firePressed && shot ) shot = false;
 	for ( i = 0; i < floorArray.length; i++ )
 	{
-		
 		floorArray[i].x -= scrollspeed * ( 1 / life );
 
-		if(( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0)
+		if ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0 )
 		{
 			floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
-			floorArray[i].y = ( ( stage.canvas.height - ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+			if(jamieMode) floorArray[i].y = stage.canvas.height ;
+			else floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 			lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 			lastDistance.index = i;
 		}
@@ -591,26 +779,50 @@ function processMovement()
 	}
 	for ( i = 0; i < enemyArray.length; i++ )
 	{
-		enemyArray[i].x -= scrollspeed * ( 1 / life );
-		if(( enemyArray[i].getBounds().width * enemyArray[i].scaleX ) + enemyArray[i].x <= 0)
+		if ( enemyArray[i].visible )
 		{
-			enemyArray[i].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
-			enemyArray[i].y = ( ( stage.canvas.height - ( enemyArray[i].getBounds().height * enemyArray[i].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[i].getBounds().height * enemyArray[i].scaleY );
-			lastEnemySpawn.index = i;
+			enemyArray[i].x -= scrollspeed * ( 1 / life );
+			if ( ( enemyArray[i].getBounds().width * enemyArray[i].scaleX ) + enemyArray[i].x <= 0 )
+			{
+				enemyArray[i].visible = false;
+			}
 		}
 	}
 
 	for ( i = 0; i < healthArray.length; i++ )
 	{
-		healthArray[i].x -= scrollspeed * ( 1 / life );
-		if ( ( healthArray[i].getBounds().width * healthArray[i].scaleX ) + healthArray[i].x <= 0 )
+		if ( healthArray[i].visible )
 		{
-			healthArray[i].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
-			healthArray[i].y = ( ( stage.canvas.height - ( healthArray[i].getBounds().height * healthArray[i].scaleY ) ) * Math.random() ) + ( 2 * healthArray[i].getBounds().height * healthArray[i].scaleY );
-			lastHealthSpawn.index = i;
+			healthArray[i].x -= scrollspeed * ( 1 / life );
+			if ( ( healthArray[i].getBounds().width * healthArray[i].scaleX ) + healthArray[i].x <= 0 )
+			{
+				healthArray[i].visible = false;
+			}
 		}
 	}
-	character.x -= scrollspeed * ( 1 / life );
+	for ( i = 0; i < bulletArray.length; i++ )
+	{
+		if(bulletArray[i].sprite.visible)
+		{
+			bulletArray[i].sprite.x -= ( scrollspeed * ( 1 / life ) ) - ( bulletArray[i].direction * scrollspeed * bulletVelocity * ( 1 / life ) );
+			if ( ( bulletArray[i].sprite.getBounds().width * bulletArray[i].sprite.scaleX ) + bulletArray[i].sprite.x <= 0 || bulletArray[i].sprite.x >= stage.canvas.width )
+			{
+				bulletArray[i].sprite.visible = false;
+			}
+		}
+	}
+
+	if ( !jamieMode ) character.x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
+	velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
+	velocity.X *= Math.pow( damping, ( 1 / createjs.Ticker.getFPS() ) );
+	character.x += velocity.X * ( 1 / createjs.Ticker.getFPS() );
+	character.y += velocity.Y * ( 1 / createjs.Ticker.getFPS() );
+	if ( character.x > stage.canvas.width )
+	{
+		character.x -= character.x - stage.canvas.width;
+		velocity.X = 0;
+	}
+	distanceBoundary -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
 }
 
 function processCollisions()
@@ -621,44 +833,114 @@ function processCollisions()
 		if ( collided )
 		{
 			character.y -= collided.height;
-			if ( jumpPressed ) velocity.Y = -300;
+			if ( jumpPressed ) velocity.Y = -250;
 			else velocity.Y = 0;
 		}
 
 		for ( j = 0; j < healthArray.length; j++ )
 		{
-			var healthFloorCollision = ndgmr.checkRectCollision( healthArray[j], floorArray[i] );
-			if ( healthFloorCollision )
+			if ( healthArray[j].visible )
 			{
-				healthArray[j].y -= healthFloorCollision.height;
-			}
 
-			var playerHitHealth = ndgmr.checkRectCollision( character, healthArray[j] );
-			if ( playerHitHealth )
-			{
-				life += 1;
-				healthArray[j].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
-				healthArray[j].y = ( ( stage.canvas.height - ( healthArray[j].getBounds().height * healthArray[j].scaleY ) ) * Math.random() ) + ( 2 * healthArray[j].getBounds().height * healthArray[j].scaleY );
-				lastHealthSpawn.index = j;
+				var healthFloorCollision = ndgmr.checkRectCollision( healthArray[j], floorArray[i] );
+				if ( healthFloorCollision )
+				{
+					healthArray[j].y -= healthFloorCollision.height;
+				}
 			}
 		}
 
-		for(j = 0; j < enemyArray.length; j++)
+		for ( j = 0; j < enemyArray.length; j++ )
 		{
-			var enemyFloorCollision = ndgmr.checkRectCollision( enemyArray[j], floorArray[i] );
-			if(enemyFloorCollision)
+			if ( enemyArray[j].visible )
 			{
-				enemyArray[j].y -= enemyFloorCollision.height;
+				var enemyFloorCollision = ndgmr.checkRectCollision( enemyArray[j], floorArray[i] );
+				if ( enemyFloorCollision )
+				{
+					enemyArray[j].y -= enemyFloorCollision.height;
+				}
 			}
+		}
+	}
 
-			var playerHitEnemy = ndgmr.checkRectCollision( character, enemyArray[j] );
-			if(playerHitEnemy)
+	for(i = 0; i < healthArray.length; i++)
+	{
+		if ( healthArray[i].visible )
+		{
+			if ( healthArray[i].visible )
 			{
-				life -= 1;
-				enemyArray[j].x = ( ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) * Math.random() ) + floorArray[lastDistance.index].x;
-				enemyArray[j].y = ( ( stage.canvas.height - ( enemyArray[j].getBounds().height * enemyArray[j].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[j].getBounds().height * enemyArray[j].scaleY );
-				lastEnemySpawn.index = j;
+				var playerHitHealth = ndgmr.checkRectCollision( character, healthArray[i] );
+				if ( playerHitHealth )
+				{
+					getHealth.stop();
+					getHealth.play();
+					score += 5;
+					if ( life < MAXFPS ) life += 1;
+					healthArray[i].visible = false;
+				}
 			}
+		}
+	}
+
+	for(i = 0; i < enemyArray.length; i++)
+	{
+		if ( enemyArray[i].visible )
+		{
+			var playerHitEnemy = ndgmr.checkRectCollision( character, enemyArray[i] );
+			if ( playerHitEnemy )
+			{
+				if(!jamieMode)
+				{
+					life -= 2;
+					score -= 5;
+				}
+				enemyArray[i].visible = false;
+			}
+			else
+			{
+				for ( j = 0; j < bulletArray.length; j++ )
+				{
+					if ( bulletArray[j].sprite.visible )
+					{
+						var bulletHitEnemy = ndgmr.checkRectCollision( bulletArray[j].sprite, enemyArray[i] );
+						if ( bulletHitEnemy )
+						{
+							score += 10;
+							enemyArray[i].visible = false;
+							bulletArray[j].sprite.visible = false;
+						}
+					}
+				}
+			}
+		}
+
+	}
+}
+
+function spawnHealth()
+{
+	for ( i = 0; i < healthArray.length; i++ )
+	{
+		if ( !healthArray[i].visible )
+		{
+			healthArray[i].x = ( stage.canvas.width * 1.1 ) + ( healthArray[i].getBounds().width * healthArray[i].scaleX );
+			healthArray[i].y = ( ( stage.canvas.height - ( 2 * healthArray[i].getBounds().height * healthArray[i].scaleY ) ) * Math.random() ) + ( 2 * healthArray[i].getBounds().height * healthArray[i].scaleY );
+			healthArray[i].visible = true;
+			break;
+		}
+	}
+}
+
+function spawnEnemy()
+{
+	for ( i = 0; i < enemyArray.length; i++ )
+	{
+		if ( !enemyArray[i].visible )
+		{
+			enemyArray[i].x = ( stage.canvas.width * 1.1 ) + ( enemyArray[i].getBounds().width * enemyArray[i].scaleX );
+			enemyArray[i].y = ( ( stage.canvas.height - ( 2 * enemyArray[i].getBounds().height * enemyArray[i].scaleY ) ) * Math.random() ) + ( 2 * enemyArray[i].getBounds().height * enemyArray[i].scaleY );
+			enemyArray[i].visible = true;
+			break;
 		}
 	}
 }
@@ -678,8 +960,8 @@ function gameOverInit()
 	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
 	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
 	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
-
-	scoreDisplay = new createjs.Text( "Final Score: " + score, "16px Arial", "#000" );
+	if ( highScore < ( distance / 100 ) + score ) highScore = ( distance / 100 ) + score;
+	scoreDisplay = new createjs.Text( "Final Score: " + Math.floor(( distance / 100 ) + score ), "16px Arial", "#000" );
 	scoreDisplay.regX = scoreDisplay.getMeasuredWidth() / 2;
 	scoreDisplay.regY = scoreDisplay.getMeasuredHeight() / 2;
 
@@ -821,13 +1103,16 @@ var KEYCODE_A = 65;
 var KEYCODE_W = 87;
 var KEYCODE_D = 68;
 var KEYCODE_S = 83;
-
+var KEYCODE_J = 74;
 var KEYCODE_SPACE = 32;
 
 
 var leftPressed = false;
 var rightPressed = false;
 var jumpPressed = false;
+var downPressed = false;
+var firePressed = false;
+var jamiePressed = false;
 function handleKeyDown( evt )
 {
 	if ( !evt ) { var evt = window.event; }
@@ -853,6 +1138,7 @@ function handleKeyDown( evt )
 			}
 		case KEYCODE_DOWN:
 			{
+				downPressed = true;
 				console.log( "down key down" );
 				break;
 			}
@@ -877,12 +1163,19 @@ function handleKeyDown( evt )
 			}
 		case KEYCODE_S:
 			{
+				downPressed = true;
 				console.log( "S key down" );
+				break;
+			}
+		case KEYCODE_J:
+			{
+				jamiePressed = true;
+				console.log( "J key down" );
 				break;
 			}
 		case KEYCODE_SPACE:
 			{
-				jumpPressed = true;
+				firePressed = true;
 				console.log( "Space key down" );
 				break;
 			}
@@ -920,6 +1213,7 @@ function handleKeyUp( evt )
 			}
 		case KEYCODE_DOWN:
 			{
+				downPressed = false;
 				console.log( "down key up" );
 				break;
 			}
@@ -943,12 +1237,19 @@ function handleKeyUp( evt )
 			}
 		case KEYCODE_S:
 			{
+				downPressed = false;
 				console.log( "S key up" );
+				break;
+			}
+		case KEYCODE_J:
+			{
+				jamiePressed = false;
+				console.log( "J key up" );
 				break;
 			}
 		case KEYCODE_SPACE:
 			{
-				jumpPressed = false;
+				firePressed = false;
 				console.log( "Space key up" );
 				break;
 			}
