@@ -32,6 +32,7 @@ var gameManifest =
 	{ src: "images/health.png", id: "health" },
 	{ src: "images/fpsBar.png", id: "fpsBar" },
 	{ src: "images/bullet.png", id: "bullet" },
+	{ src: "images/hud.png", id: "hud" },
 	{ src: "audio/getHealth.mp3", id: "getHealth" },
 	{ src: "audio/shoot.mp3", id: "shoot" },
 	{ src: "audio/hitBad.mp3", id: "hitBad" },
@@ -42,7 +43,7 @@ var titleQueue, titleScreen, playButton, menuButton, creditsButton, audioButton;
 
 var instructionQueue, instructionScreen, credits;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, hud;
 
 function setUpCanvas()
 {
@@ -346,6 +347,7 @@ function gameLoaded()
 	bullet.scaleY = 0.1;
 	bullet.regY = 100 * 0.1 * 0.5;
 
+	hud = new createjs.Bitmap( gameQueue.getResult( "hud" ) );
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
@@ -579,6 +581,7 @@ function gameInit()
 	stage.addChild( backgroundScreen );
 	lastKey = 0;
 
+	touchingFloor = false;
 	jamieHold = false;
 	jamieMode = false;
 	life = 30;
@@ -656,19 +659,24 @@ function gameInit()
 	distance = 0;
 	distanceBoundary = character.x;
 
-	scoreDisplay = new createjs.Text( "Score: " + distance, "16px Arial", "#000" );
-	scoreDisplay.x = 0;
-	scoreDisplay.y = 0;
-	stage.addChild( scoreDisplay );
 
-	lifeDisplay = new createjs.Text( "FPS: ", "16px Arial", "#000" );
-	lifeDisplay.y = scoreDisplay.getMeasuredHeight();
+	stage.addChild( hud );
+
+	lifeDisplay = new createjs.Text( "FPS: ", "16px Comic Sans MS", "#000" );
 	stage.addChild( lifeDisplay );
 
 	fpsBar.x = lifeDisplay.getBounds().width;
-	fpsBar.y = lifeDisplay.y + ( lifeDisplay.getMeasuredHeight() / 2 );
+	fpsBar.y = lifeDisplay.getMeasuredHeight() / 2;
 	fpsBar.scaleX = life / 30;
 	stage.addChild( fpsBar );
+
+	scoreDisplay = new createjs.Text( "Score: " + distance, "16px Comic Sans MS", "#000" );
+	scoreDisplay.x = 0;
+	scoreDisplay.y = lifeDisplay.getMeasuredHeight();
+	stage.addChild( scoreDisplay );
+	hud.scaleX = 3;
+	hud.scaleY = ((lifeDisplay.getMeasuredHeight() + scoreDisplay.getMeasuredHeight()) / 100) + 0.05;
+
 	lastSpawnEnemyDistance = 0;
 	lastSpawnHealthDistance = 0;
 
@@ -724,6 +732,7 @@ var damping = 0.1;
 var lastSpawnEnemyDistance;
 var lastSpawnHealthDistance;
 var SCROLLACCELERATION = 5;
+var touchingFloor = false;
 function gameUpdate()
 {
 	if ( !gameInitialized )
@@ -905,7 +914,7 @@ function processMovement()
 	}
 
 	if ( !jamieMode ) character.x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
-	velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
+	if(!touchingFloor) velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
 	velocity.X *= Math.pow( damping, ( 1 / createjs.Ticker.getFPS() ) );
 	character.x += velocity.X * ( 1 / createjs.Ticker.getFPS() );
 	character.y += velocity.Y * ( 1 / createjs.Ticker.getFPS() );
@@ -919,11 +928,13 @@ function processMovement()
 
 function processCollisions()
 {
+	touchingFloor = false;
 	for ( i = 0; i < floorArray.length; i++ )
 	{
 		var collided = ndgmr.checkRectCollision( character, floorArray[i] );
 		if ( collided )
 		{
+			touchingFloor = true;
 			character.y -= collided.height;
 			if ( jumpPressed ) velocity.Y = -250;
 			else velocity.Y = 0;
