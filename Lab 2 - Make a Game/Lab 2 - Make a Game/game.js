@@ -31,14 +31,16 @@ var gameManifest =
 	{ src: "images/fpsBar.png", id: "fpsBar" },
 	{ src: "images/bullet.png", id: "bullet" },
 	{ src: "audio/getHealth.mp3", id: "getHealth" },
-	{ src: "audio/shoot.mp3", id: "shoot" }
+	{ src: "audio/shoot.mp3", id: "shoot" },
+	{ src: "audio/hitBad.mp3", id: "hitBad" },
+	{ src: "audio/hitGood.mp3", id: "hitGood" }
 	];
 var stage;
 var titleQueue, titleScreen, playButton, menuButton, audioButton;
 
 var instructionQueue, instructionScreen;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, character, enemy, health, fpsBar, bullet, floor;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor;
 
 function setUpCanvas()
 {
@@ -324,6 +326,8 @@ function gameLoaded()
 	music = new createjs.Sound.createInstance( "music" );
 	getHealth = new createjs.Sound.createInstance( "getHealth" );
 	shoot = new createjs.Sound.createInstance( "shoot" );
+	hitBad = new createjs.Sound.createInstance( "hitBad" );
+	hitGood = new createjs.Sound.createInstance( "hitGood" );
 	floor = new createjs.Bitmap( gameQueue.getResult( "floor" ) );
 	floor.regX = 0;
 	floor.regY = 100;
@@ -636,7 +640,7 @@ var healthSpawn;
 var healthSpawnInterval = 10;
 var enemySpawn;
 var enemySpawnInterval = 3;
-var SCROLLACCELERATION = 1;
+var SCROLLACCELERATION = 5;
 function gameUpdate()
 {
 	if ( !gameInitialized )
@@ -891,6 +895,8 @@ function processCollisions()
 			{
 				if(!jamieMode)
 				{
+					hitBad.stop();
+					hitBad.play();
 					life -= 2;
 					score -= 5;
 				}
@@ -905,6 +911,8 @@ function processCollisions()
 						var bulletHitEnemy = ndgmr.checkRectCollision( bulletArray[j].sprite, enemyArray[i] );
 						if ( bulletHitEnemy )
 						{
+							hitGood.stop();
+							hitGood.play();
 							score += 10;
 							enemyArray[i].visible = false;
 							bulletArray[j].sprite.visible = false;
