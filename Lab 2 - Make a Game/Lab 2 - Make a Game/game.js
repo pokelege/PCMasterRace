@@ -11,7 +11,8 @@ var MAXFPS = 60;
 var titleManifest =
 [
 	{ src: "images/title.jpg", id: "title" },
-	{ src: "images/titleButtons.jpg", id: "titleButtons" }
+	{ src: "images/titleButtons.jpg", id: "titleButtons" },
+	{ src: "images/audio.jpg", id: "audioButton" }
 ];
 
 var instructionManifest =
@@ -24,7 +25,6 @@ var gameManifest =
 	{ src: "images/background.jpg", id: "background" },
 	{ src: "images/gameover.jpg", id: "gameover" },
 	{ src: "images/levelsign.png", id: "levelsign" },
-	{ src: "images/audio.jpg", id: "audioButton" },
 	{ src: "audio/InGame.mp3", id: "music" },
 	{ src: "images/character.png", id: "character" },
 	{ src: "images/floor.png", id: "floor" },
@@ -38,11 +38,11 @@ var gameManifest =
 	{ src: "audio/hitGood.mp3", id: "hitGood" }
 	];
 var stage;
-var titleQueue, titleScreen, playButton, menuButton, creditsButton;
+var titleQueue, titleScreen, playButton, menuButton, creditsButton, audioButton;
 
 var instructionQueue, instructionScreen, credits;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, audioButton;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor;
 
 function setUpCanvas()
 {
@@ -157,30 +157,10 @@ function titleLoaded()
 
 	creditsButton = new createjs.Sprite( creditsButtonSheet );
 
-	instructionQueue = new createjs.LoadQueue( true, "assets/" );
-	instructionQueue.on( "complete", instructionsLoaded, this );
-	instructionQueue.loadManifest( instructionManifest );
-}
-
-function instructionsLoaded()
-{
-	instructionScreen = new createjs.Bitmap( instructionQueue.getResult( "instructions" ) );
-	credits = new createjs.Bitmap( instructionQueue.getResult( "credits" ) );
-
-	gameQueue = new createjs.LoadQueue( true, "assets/" );
-	createjs.Sound.alternateExtensions = ["mp3"];
-	gameQueue.installPlugin( createjs.Sound );
-	gameQueue.on( "complete", gameLoaded, this );
-	gameQueue.loadManifest( gameManifest );
-}
-
-function gameLoaded()
-{
-
 	var audioButtonSheet = new createjs.SpriteSheet
 (
 {
-	images: [gameQueue.getResult( "audioButton" )],
+	images: [titleQueue.getResult( "audioButton" )],
 	frames:
 		{
 			regX: 30 / 2,
@@ -220,6 +200,26 @@ function gameLoaded()
 );
 
 	audioButton = new createjs.Sprite( audioButtonSheet );
+
+	instructionQueue = new createjs.LoadQueue( true, "assets/" );
+	instructionQueue.on( "complete", instructionsLoaded, this );
+	instructionQueue.loadManifest( instructionManifest );
+}
+
+function instructionsLoaded()
+{
+	instructionScreen = new createjs.Bitmap( instructionQueue.getResult( "instructions" ) );
+	credits = new createjs.Bitmap( instructionQueue.getResult( "credits" ) );
+
+	gameQueue = new createjs.LoadQueue( true, "assets/" );
+	createjs.Sound.alternateExtensions = ["mp3"];
+	gameQueue.installPlugin( createjs.Sound );
+	gameQueue.on( "complete", gameLoaded, this );
+	gameQueue.loadManifest( gameManifest );
+}
+
+function gameLoaded()
+{
 
 	var characterSheet = new createjs.SpriteSheet
 	(
@@ -426,6 +426,17 @@ function titleInit()
 	creditsButton.on( "mouseover", function playHover( evt ) { creditsButton.gotoAndPlay( "Hover" ); }, this );
 	creditsButton.on( "mousedown", function playHover( evt ) { creditsButton.gotoAndPlay( "Click" ); }, this );
 	creditsButton.on( "click", function playHover( evt ) { creditsButton.gotoAndPlay( "Neutral" ); mode = MODE_CREDITS }, this );
+
+	stage.addChild( audioButton );
+	audioButton.x = ( 30 * 0.5 );
+	audioButton.y = stage.canvas.height - ( 30 * 0.5 );
+	if ( mute ) audioButton.gotoAndPlay( "OffNeutral" );
+	else audioButton.gotoAndPlay( "OnNeutral" );
+	audioButton.on( "mouseout", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffNeutral" ); else audioButton.gotoAndPlay( "OnNeutral" ); }, this );
+	audioButton.on( "mouseover", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffHover" ); else audioButton.gotoAndPlay( "OnHover" ); }, this );
+	audioButton.on( "mousedown", function playHover( evt ) { if ( mute ) audioButton.gotoAndPlay( "OffClick" ); else audioButton.gotoAndPlay( "OnClick" ); }, this );
+	audioButton.on( "click", function playHover( evt ) { mute = mute == false; if ( mute ) audioButton.gotoAndPlay( "OffNeutral" ); else audioButton.gotoAndPlay( "OnNeutral" ); }, this );
+
 	titleInitialized = true;
 }
 function titleDelete()
@@ -434,6 +445,7 @@ function titleDelete()
 	playButton.removeAllEventListeners();
 	instructionsButton.removeAllEventListeners();
 	creditsButton.removeAllEventListeners();
+	audioButton.removeAllEventListeners();
 	titleInitialized = false;
 }
 function titleUpdate()
@@ -516,7 +528,7 @@ function instructionsUpdate()
 var gameInitialized = false;
 var GRAVITY = 200;
 var life = 30;
-var scoreDisplay, lifeDisplay, levelFrameText;
+var scoreDisplay, lifeDisplay, levelFrameText,levelFrameStaticText;
 var levelFrameContainer;
 var animated = false;
 var levelFrameAnimator;
@@ -545,10 +557,7 @@ var bulletArray;
 
 function levelFrameAniFinished( tween )
 {
-	levelFrameContainer.x = levelFrame.image.width / -2;
-	levelFrameContainer.y = stage.canvas.height / 2;
-	levelFrameContainer.scaleX = 1;
-	levelFrameContainer.scaleY = 1;
+	levelFrameContainer.alpha = 1;
 	levelFrameContainer.visible = false;
 	levelFrameAnimator = null;
 	animated = true;
@@ -559,9 +568,8 @@ function showLevelFrame()
 	levelFrameText.text = Math.floor( highScore );
 	levelFrameContainer.visible = true;
 	levelFrameAnimator = new createjs.Tween.get( levelFrameContainer, { loop: false } )
-	.to( { x: stage.canvas.width / 2, y: stage.canvas.height / 2, rotation: 0 }, 1000, createjs.Ease.bounceOut )
 	.wait( 2000 )
-	.to( { x: stage.canvas.width + ( levelFrame.image.width / 2 ), y: ( levelFrame.image.height / -2 ), scaleX: 0, scaleY: 0 }, 1000, createjs.Ease.sineIn )
+	.to( { alpha: 0 }, 1000, createjs.Ease.sineIn )
 	.call( levelFrameAniFinished );
 	animated = false;
 }
@@ -625,23 +633,6 @@ function gameInit()
 		stage.addChild( bulletArray[i].sprite );
 	}
 
-	levelFrameText = new createjs.Text( Math.floor( highScore ), "80px Comic Sans MS", "#FFF" );
-	levelFrameText.regX = levelFrameText.getMeasuredWidth() / 2;
-	levelFrameText.regY = levelFrameText.getMeasuredHeight() / 2;
-	levelFrameText.x = levelFrame.image.width / 2;
-	levelFrameText.y = levelFrame.image.height / 2;
-
-	levelFrameContainer = new createjs.Container();
-	levelFrameContainer.addChild( levelFrame, levelFrameText );
-	levelFrameContainer.regX = levelFrame.image.width / 2;
-	levelFrameContainer.regY = levelFrame.image.height / 2;
-	levelFrameContainer.x = levelFrame.image.width / -2;
-	levelFrameContainer.y = stage.canvas.height / 2;
-	levelFrameContainer.scaleX = 1;
-	levelFrameContainer.scaleY = 1;
-	levelFrameContainer.visible = false;
-	stage.addChild( levelFrameContainer );
-
 	stage.addChild( menuButton );
 	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
 	menuButton.y = stage.canvas.height - ( 30 / 2 );
@@ -676,9 +667,29 @@ function gameInit()
 
 	fpsBar.x = lifeDisplay.getBounds().width;
 	fpsBar.y = lifeDisplay.y + ( lifeDisplay.getMeasuredHeight() / 2 );
+	fpsBar.scaleX = life / 30;
 	stage.addChild( fpsBar );
 	lastSpawnEnemyDistance = 0;
 	lastSpawnHealthDistance = 0;
+
+	levelFrameStaticText = new createjs.Text( "High Score", "80px Comic Sans MS", "#FFF" );
+	levelFrameStaticText.regX = levelFrameStaticText.getMeasuredWidth() / 2;
+	levelFrameStaticText.regY = levelFrameStaticText.getMeasuredHeight();
+	levelFrameStaticText.x = levelFrame.image.width / 2;
+	levelFrameStaticText.y = levelFrame.image.height / 2;
+
+	levelFrameText = new createjs.Text( Math.floor( highScore ), "80px Comic Sans MS", "#FFF" );
+	levelFrameText.regX = levelFrameText.getMeasuredWidth() / 2;
+	levelFrameText.regY = 0;
+	levelFrameText.x = levelFrame.image.width / 2;
+	levelFrameText.y = levelFrame.image.height / 2;
+
+	levelFrameContainer = new createjs.Container();
+	levelFrameContainer.addChild( levelFrame, levelFrameText, levelFrameStaticText );
+	levelFrameContainer.alpha = 1;
+	levelFrameContainer.visible = false;
+	stage.addChild( levelFrameContainer );
+
 	gameInitialized = true;
 }
 
@@ -692,7 +703,7 @@ function gameDelete()
 	menuButton.removeAllEventListeners();
 	audioButton.removeAllEventListeners();
 	createjs.Tween.removeAllTweens();
-	scoreDisplay = lifeDisplay = levelFrameText = levelFrameContainer = levelFrameAnimator = floorArray = enemyArray = healthArray = null;
+	scoreDisplay = lifeDisplay = levelFrameText = levelFrameStaticText = levelFrameContainer = levelFrameAnimator = floorArray = enemyArray = healthArray = null;
 	gameInitialized = false;
 }
 
@@ -726,7 +737,7 @@ function gameUpdate()
 		jamieToggle();
 		if ( jamieMode )
 		{
-			createjs.Ticker.setFPS( 30 );
+			
 			music.setMute( mute );
 			if ( character.y - 75 >= stage.canvas.height || life < 1 )
 			{
@@ -752,13 +763,13 @@ function gameUpdate()
 
 				scoreDisplay.text = "Score: " + Math.floor(( distance / 100 ) + score );
 				fpsBar.scaleX = life / 30;
-				scrollspeed += SCROLLACCELERATION * ( 1 / createjs.Ticker.getFPS() );
+				scrollspeed += SCROLLACCELERATION * ( 1 / life );
 				if ( scrollspeed > 500 ) scrollspeed = 500;
 			}
+			createjs.Ticker.setFPS( 30 );
 		}
 		else
 		{
-			createjs.Ticker.setFPS( life );
 			music.setMute( mute );
 			if ( character.y - 75 >= stage.canvas.height || life < 1 )
 			{
@@ -792,6 +803,7 @@ function gameUpdate()
 				fpsBar.scaleX = life / 30;
 				scrollspeed += SCROLLACCELERATION * ( 1 / createjs.Ticker.getFPS() );
 			}
+			createjs.Ticker.setFPS( life );
 		}
 	}
 }
@@ -845,7 +857,7 @@ function processMovement()
 	else if ( !firePressed && shot ) shot = false;
 	for ( i = 0; i < floorArray.length; i++ )
 	{
-		floorArray[i].x -= scrollspeed * ( 1 / life );
+		floorArray[i].x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
 
 		if ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0 )
 		{
@@ -861,7 +873,7 @@ function processMovement()
 	{
 		if ( enemyArray[i].visible )
 		{
-			enemyArray[i].x -= scrollspeed * ( 1 / life );
+			enemyArray[i].x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
 			if ( ( enemyArray[i].getBounds().width * enemyArray[i].scaleX ) + enemyArray[i].x <= 0 )
 			{
 				enemyArray[i].visible = false;
@@ -873,7 +885,7 @@ function processMovement()
 	{
 		if ( healthArray[i].visible )
 		{
-			healthArray[i].x -= scrollspeed * ( 1 / life );
+			healthArray[i].x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
 			if ( ( healthArray[i].getBounds().width * healthArray[i].scaleX ) + healthArray[i].x <= 0 )
 			{
 				healthArray[i].visible = false;
@@ -884,7 +896,7 @@ function processMovement()
 	{
 		if(bulletArray[i].sprite.visible)
 		{
-			bulletArray[i].sprite.x -= ( scrollspeed * ( 1 / life ) ) - ( bulletArray[i].direction * scrollspeed * bulletVelocity * ( 1 / life ) );
+			bulletArray[i].sprite.x -= ( scrollspeed * ( 1 / createjs.Ticker.getFPS() ) ) - ( bulletArray[i].direction * scrollspeed * bulletVelocity * ( 1 / createjs.Ticker.getFPS() ) );
 			if ( ( bulletArray[i].sprite.getBounds().width * bulletArray[i].sprite.scaleX ) + bulletArray[i].sprite.x <= 0 || bulletArray[i].sprite.x >= stage.canvas.width )
 			{
 				bulletArray[i].sprite.visible = false;
