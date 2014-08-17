@@ -2,8 +2,9 @@ var MODE_TITLE = "title";
 var MODE_INSTRUCTIONS = "instructions";
 var MODE_GAME = "game";
 var MODE_GAMEOVER = "gameover";
+var MODE_CREDITS = "credits";
 var mode = MODE_TITLE;
-var TITLEBUTTONSIZE = 9;
+var TITLEBUTTONSIZE = 12;
 var AUDIOBUTTIONSIZE = 6;
 var MAINFPS = 30;
 var MAXFPS = 60;
@@ -15,7 +16,8 @@ var titleManifest =
 
 var instructionManifest =
 	[
-		{ src: "images/instructions.jpg", id: "instructions" }
+		{ src: "images/instructions.jpg", id: "instructions" },
+		{ src: "images/credits.jpg", id: "credits" }
 	];
 var gameManifest =
 	[
@@ -36,11 +38,11 @@ var gameManifest =
 	{ src: "audio/hitGood.mp3", id: "hitGood" }
 	];
 var stage;
-var titleQueue, titleScreen, playButton, menuButton, audioButton;
+var titleQueue, titleScreen, playButton, menuButton, creditsButton;
 
-var instructionQueue, instructionScreen;
+var instructionQueue, instructionScreen, credits;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, audioButton;
 
 function setUpCanvas()
 {
@@ -132,6 +134,29 @@ function titleLoaded()
 
 	menuButton = new createjs.Sprite( menuButtonSheet );
 
+	var creditsButtonSheet = new createjs.SpriteSheet
+(
+{
+	images: [titleQueue.getResult( "titleButtons" )],
+	frames:
+		{
+			regX: 150 / 2,
+			regY: 30 / 2,
+			width: 150,
+			height: 30,
+			count: TITLEBUTTONSIZE
+		},
+	animations:
+		{
+			Neutral: [9, 9],
+			Hover: [10, 10],
+			Click: [11,11]
+		}
+}
+);
+
+	creditsButton = new createjs.Sprite( creditsButtonSheet );
+
 	instructionQueue = new createjs.LoadQueue( true, "assets/" );
 	instructionQueue.on( "complete", instructionsLoaded, this );
 	instructionQueue.loadManifest( instructionManifest );
@@ -140,6 +165,7 @@ function titleLoaded()
 function instructionsLoaded()
 {
 	instructionScreen = new createjs.Bitmap( instructionQueue.getResult( "instructions" ) );
+	credits = new createjs.Bitmap( instructionQueue.getResult( "credits" ) );
 
 	gameQueue = new createjs.LoadQueue( true, "assets/" );
 	createjs.Sound.alternateExtensions = ["mp3"];
@@ -347,6 +373,11 @@ function removeAll()
 		instructionsDelete();
 	}
 
+	if ( creditsInitialized )
+	{
+		creditsDelete();
+	}
+
 	if ( gameInitialized )
 	{
 		gameDelete();
@@ -371,10 +402,13 @@ function titleInit()
 	stage.addChild( titleScreen );
 	stage.addChild( playButton );
 	stage.addChild( instructionsButton );
-	playButton.x = stage.canvas.width - ( 150 * 1.5 );
+	stage.addChild( creditsButton );
+	playButton.x = stage.canvas.width - ( 150 * 2.5 );
 	playButton.y = stage.canvas.height - ( 30 / 2 );
-	instructionsButton.x = stage.canvas.width - ( 150 * 0.5 );
+	instructionsButton.x = stage.canvas.width - ( 150 * 1.5 );
 	instructionsButton.y = stage.canvas.height - ( 30 / 2 );
+	creditsButton.x = stage.canvas.width - ( 150 * 0.5 );
+	creditsButton.y = stage.canvas.height - ( 30 / 2 );
 	playButton.gotoAndPlay( "Neutral" );
 	playButton.on( "mouseout", function playHover( evt ) { playButton.gotoAndPlay( "Neutral" ); }, this );
 	playButton.on( "mouseover", function playHover( evt ) { playButton.gotoAndPlay( "Hover" ); }, this );
@@ -386,6 +420,12 @@ function titleInit()
 	instructionsButton.on( "mouseover", function playHover( evt ) { instructionsButton.gotoAndPlay( "Hover" ); }, this );
 	instructionsButton.on( "mousedown", function playHover( evt ) { instructionsButton.gotoAndPlay( "Click" ); }, this );
 	instructionsButton.on( "click", function playHover( evt ) { instructionsButton.gotoAndPlay( "Neutral" ); mode = MODE_INSTRUCTIONS }, this );
+
+	creditsButton.gotoAndPlay( "Neutral" );
+	creditsButton.on( "mouseout", function playHover( evt ) { creditsButton.gotoAndPlay( "Neutral" ); }, this );
+	creditsButton.on( "mouseover", function playHover( evt ) { creditsButton.gotoAndPlay( "Hover" ); }, this );
+	creditsButton.on( "mousedown", function playHover( evt ) { creditsButton.gotoAndPlay( "Click" ); }, this );
+	creditsButton.on( "click", function playHover( evt ) { creditsButton.gotoAndPlay( "Neutral" ); mode = MODE_CREDITS }, this );
 	titleInitialized = true;
 }
 function titleDelete()
@@ -393,6 +433,7 @@ function titleDelete()
 	stage.removeAllChildren();
 	playButton.removeAllEventListeners();
 	instructionsButton.removeAllEventListeners();
+	creditsButton.removeAllEventListeners();
 	titleInitialized = false;
 }
 function titleUpdate()
@@ -401,6 +442,39 @@ function titleUpdate()
 	{
 		removeAll();
 		titleInit();
+	}
+}
+//#endregion
+
+//#region credits
+var creditsInitialized = false;
+function creditsInit()
+{
+	stage.addChild( credits );
+	stage.addChild( menuButton );
+	menuButton.x = stage.canvas.width - ( 150 * 0.5 );
+	menuButton.y = stage.canvas.height - ( 30 / 2 );
+	menuButton.gotoAndPlay( "Neutral" );
+	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); }, this );
+	menuButton.on( "mouseover", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
+	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
+	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
+	creditsInitialized = true;
+}
+
+function creditsDelete()
+{
+	stage.removeAllChildren();
+	menuButton.removeAllEventListeners();
+	creditsInitialized = false;
+}
+
+function creditsUpdate()
+{
+	if ( !creditsInitialized )
+	{
+		removeAll();
+		creditsInit();
 	}
 }
 //#endregion
@@ -507,7 +581,7 @@ function gameInit()
 
 	floorArray = new Array();
 	floorArray.push( floor.clone() );
-	floorArray[0].y = stage.canvas.height;
+	floorArray[0].y = stage.canvas.height / 2;
 	lastDistance.distance = ( floorArray[0].getBounds().width * floorArray[0].scaleX );
 	lastDistance.index = 0;
 	stage.addChild( floorArray[0] );
@@ -525,11 +599,11 @@ function gameInit()
 	velocity.X = 0;
 	velocity.Y = 0;
 	character.x = 100;
-	character.y = stage.canvas.height / 2;
+	character.y = stage.canvas.height / 4;
 	stage.addChild( character );
 
 	enemyArray = new Array();
-	for ( i = 0; i < 5; i++ )
+	for ( i = 0; i < 20; i++ )
 	{
 		enemyArray.push( enemy.clone() );
 		enemyArray[i].visible = false;
@@ -537,7 +611,7 @@ function gameInit()
 	}
 
 	healthArray = new Array();
-	for ( i = 0; i < 3; i++ )
+	for ( i = 0; i < 10; i++ )
 	{
 		healthArray.push( health.clone() );
 		healthArray[i].visible = false;
@@ -603,8 +677,8 @@ function gameInit()
 	fpsBar.x = lifeDisplay.getBounds().width;
 	fpsBar.y = lifeDisplay.y + ( lifeDisplay.getMeasuredHeight() / 2 );
 	stage.addChild( fpsBar );
-	healthSpawn = healthSpawnInterval;
-	enemySpawn = enemySpawnInterval;
+	lastSpawnEnemyDistance = 0;
+	lastSpawnHealthDistance = 0;
 	gameInitialized = true;
 }
 
@@ -636,10 +710,8 @@ function jamieToggle()
 var lastKey;
 var velocity = { X: 0, Y: 0 };
 var damping = 0.1;
-var healthSpawn;
-var healthSpawnInterval = 10;
-var enemySpawn;
-var enemySpawnInterval = 3;
+var lastSpawnEnemyDistance;
+var lastSpawnHealthDistance;
 var SCROLLACCELERATION = 5;
 function gameUpdate()
 {
@@ -663,11 +735,12 @@ function gameUpdate()
 			else if ( animated )
 			{
 				if ( Math.random() <= 0.25 ) spawnHealth();
-				enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
-				if ( enemySpawn <= 0 )
+				//enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( Math.floor( distance * 0.001 ) > lastSpawnEnemyDistance )
 				{
 					if ( Math.random() <= 0.5 ) spawnEnemy();
-					enemySpawn = enemySpawnInterval;
+					lastSpawnEnemyDistance = Math.floor( distance * 0.001 );
+					//enemySpawn = enemySpawnInterval;
 				}
 				processMovement();
 				processCollisions();
@@ -679,7 +752,8 @@ function gameUpdate()
 
 				scoreDisplay.text = "Score: " + Math.floor(( distance / 100 ) + score );
 				fpsBar.scaleX = life / 30;
-				scrollspeed = 50;
+				scrollspeed += SCROLLACCELERATION * ( 1 / createjs.Ticker.getFPS() );
+				if ( scrollspeed > 500 ) scrollspeed = 500;
 			}
 		}
 		else
@@ -692,17 +766,19 @@ function gameUpdate()
 			}
 			else if ( animated )
 			{
-				healthSpawn -= ( 1 / createjs.Ticker.getFPS() );
-				if ( healthSpawn <= 0 )
+				//healthSpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( Math.floor( distance * 0.001 ) > lastSpawnHealthDistance )
 				{
 					if ( Math.random() <= 0.5 ) spawnHealth();
-					healthSpawn = healthSpawnInterval;
+					lastSpawnHealthDistance = Math.floor( distance * 0.001 );
+					//healthSpawn = healthSpawnInterval;
 				}
-				enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
-				if ( enemySpawn <= 0 )
+				//enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
+				if ( Math.floor(distance * 0.005) > lastSpawnEnemyDistance )
 				{
-					if ( Math.random() <= 0.9 ) spawnEnemy();
-					enemySpawn = enemySpawnInterval;
+					if ( Math.random() <= 0.6 ) spawnEnemy();
+					lastSpawnEnemyDistance = Math.floor( distance * 0.005 );
+					//enemySpawn = enemySpawnInterval;
 				}
 				processMovement();
 				processCollisions();
@@ -1072,6 +1148,12 @@ gamestate =
 			function ()
 			{
 				if ( instructionQueue != null && instructionQueue.loaded ) instructionsUpdate();
+				else loadingUpdate( instructionQueue );
+			},
+		"credits":
+			function()
+			{
+				if ( instructionQueue != null && instructionQueue.loaded ) creditsUpdate();
 				else loadingUpdate( instructionQueue );
 			},
 		"game":
