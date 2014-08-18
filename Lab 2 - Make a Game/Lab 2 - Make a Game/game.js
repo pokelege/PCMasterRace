@@ -33,6 +33,7 @@ var gameManifest =
 	{ src: "images/fpsBar.png", id: "fpsBar" },
 	{ src: "images/bullet.png", id: "bullet" },
 	{ src: "images/hud.png", id: "hud" },
+	{ src: "images/jamie.jpg", id: "jamie" },
 	{ src: "audio/getHealth.mp3", id: "getHealth" },
 	{ src: "audio/shoot.mp3", id: "shoot" },
 	{ src: "audio/hitBad.mp3", id: "hitBad" },
@@ -43,7 +44,7 @@ var titleQueue, titleScreen, playButton, menuButton, creditsButton, audioButton;
 
 var instructionQueue, instructionScreen, credits;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, hud;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, hud, jamie;
 
 function setUpCanvas()
 {
@@ -151,7 +152,7 @@ function titleLoaded()
 		{
 			Neutral: [9, 9],
 			Hover: [10, 10],
-			Click: [11,11]
+			Click: [11, 11]
 		}
 }
 );
@@ -242,7 +243,7 @@ function gameLoaded()
 						},
 					NeutralBack:
 						{
-							frames:[0,0]
+							frames: [0, 0]
 						}
 				}
 		}
@@ -346,6 +347,10 @@ function gameLoaded()
 	bullet = new createjs.Sprite( bulletSheet, "Normal" );
 	bullet.scaleY = 0.1;
 	bullet.regY = 100 * 0.1 * 0.5;
+
+	jamie = new createjs.Bitmap( gameQueue.getResult( "jamie" ) );
+	jamie.regX = jamie.getBounds().width;
+	jamie.x = stage.canvas.width;
 
 	hud = new createjs.Bitmap( gameQueue.getResult( "hud" ) );
 	backgroundScreen = new createjs.Bitmap( gameQueue.getResult( "background" ) );
@@ -530,7 +535,7 @@ function instructionsUpdate()
 var gameInitialized = false;
 var GRAVITY = 200;
 var life = 30;
-var scoreDisplay, lifeDisplay, levelFrameText,levelFrameStaticText;
+var scoreDisplay, lifeDisplay, levelFrameText, levelFrameStaticText;
 var levelFrameContainer;
 var animated = false;
 var levelFrameAnimator;
@@ -674,10 +679,13 @@ function gameInit()
 	scoreDisplay.y = lifeDisplay.getMeasuredHeight();
 	stage.addChild( scoreDisplay );
 	hud.scaleX = 3;
-	hud.scaleY = ((lifeDisplay.getMeasuredHeight() + scoreDisplay.getMeasuredHeight()) / 100) + 0.05;
+	hud.scaleY = ( ( lifeDisplay.getMeasuredHeight() + scoreDisplay.getMeasuredHeight() ) / 100 ) + 0.05;
 
 	lastSpawnEnemyDistance = 0;
 	lastSpawnHealthDistance = 0;
+
+	jamie.visible = jamieMode;
+	stage.addChild( jamie );
 
 	levelFrameStaticText = new createjs.Text( "High Score", "80px Comic Sans MS", "#FFF" );
 	levelFrameStaticText.regX = levelFrameStaticText.getMeasuredWidth() / 2;
@@ -742,9 +750,10 @@ function gameUpdate()
 	else
 	{
 		jamieToggle();
+		jamie.visible = jamieMode;
 		if ( jamieMode )
 		{
-			
+
 			music.setMute( mute );
 			if ( character.y - 75 >= stage.canvas.height || life < 1 )
 			{
@@ -792,7 +801,7 @@ function gameUpdate()
 					//healthSpawn = healthSpawnInterval;
 				}
 				//enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
-				if ( Math.floor(distance * 0.005) > lastSpawnEnemyDistance )
+				if ( Math.floor( distance * 0.005 ) > lastSpawnEnemyDistance )
 				{
 					if ( Math.random() <= 0.6 ) spawnEnemy();
 					lastSpawnEnemyDistance = Math.floor( distance * 0.005 );
@@ -869,7 +878,7 @@ function processMovement()
 		if ( ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x <= 0 )
 		{
 			floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
-			if(jamieMode) floorArray[i].y = stage.canvas.height ;
+			if ( jamieMode ) floorArray[i].y = stage.canvas.height;
 			else floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 			lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 			lastDistance.index = i;
@@ -901,7 +910,7 @@ function processMovement()
 	}
 	for ( i = 0; i < bulletArray.length; i++ )
 	{
-		if(bulletArray[i].sprite.visible)
+		if ( bulletArray[i].sprite.visible )
 		{
 			bulletArray[i].sprite.x -= ( scrollspeed * ( 1 / createjs.Ticker.getFPS() ) ) - ( bulletArray[i].direction * scrollspeed * bulletVelocity * ( 1 / createjs.Ticker.getFPS() ) );
 			if ( ( bulletArray[i].sprite.getBounds().width * bulletArray[i].sprite.scaleX ) + bulletArray[i].sprite.x <= 0 || bulletArray[i].sprite.x >= stage.canvas.width )
@@ -962,7 +971,7 @@ function processCollisions()
 		}
 	}
 
-	for(i = 0; i < healthArray.length; i++)
+	for ( i = 0; i < healthArray.length; i++ )
 	{
 		if ( healthArray[i].visible )
 		{
@@ -981,14 +990,14 @@ function processCollisions()
 		}
 	}
 
-	for(i = 0; i < enemyArray.length; i++)
+	for ( i = 0; i < enemyArray.length; i++ )
 	{
 		if ( enemyArray[i].visible )
 		{
 			var playerHitEnemy = ndgmr.checkRectCollision( character, enemyArray[i] );
 			if ( playerHitEnemy )
 			{
-				if(!jamieMode)
+				if ( !jamieMode )
 				{
 					hitBad.stop();
 					hitBad.play();
@@ -1052,6 +1061,8 @@ function spawnEnemy()
 
 //#region game over
 var gameOverInitialized = false;
+var resultsContainer, finalScore, realScore, distanceTraveled;
+
 function gameOverInit()
 {
 	stage.addChild( gameoverScreen );
@@ -1063,14 +1074,32 @@ function gameOverInit()
 	menuButton.on( "mouseout", function playHover( evt ) { menuButton.gotoAndPlay( "Hover" ); }, this );
 	menuButton.on( "mousedown", function playHover( evt ) { menuButton.gotoAndPlay( "Click" ); }, this );
 	menuButton.on( "click", function playHover( evt ) { menuButton.gotoAndPlay( "Neutral" ); mode = MODE_TITLE }, this );
-	if ( highScore < ( distance / 100 ) + score ) highScore = ( distance / 100 ) + score;
-	scoreDisplay = new createjs.Text( "Final Score: " + Math.floor(( distance / 100 ) + score ), "16px Arial", "#000" );
-	scoreDisplay.regX = scoreDisplay.getMeasuredWidth() / 2;
-	scoreDisplay.regY = scoreDisplay.getMeasuredHeight() / 2;
 
-	scoreDisplay.x = stage.canvas.width / 2;
-	scoreDisplay.y = stage.canvas.height / 2;
-	stage.addChild( scoreDisplay );
+
+	realScore = new createjs.Text( "Raw Score: " + score, "16px Comic Sans MS", "#FFF" );
+	distanceTraveled = new createjs.Text( "Distance Traveled: " + Math.floor(( distance / 100 ) ) + " * 100 px", "16px Comic Sans MS", "#FFF" );
+
+	if ( highScore < ( distance / 100 ) + score ) highScore = ( distance / 100 ) + score;
+
+	finalScore = new createjs.Text( "Final Score: " + Math.floor(( distance / 100 ) + score ), "16px Comic Sans MS", "#FFF" );
+
+	realScore.regX = realScore.getMeasuredWidth() / 2;
+	realScore.x = 0;
+
+	distanceTraveled.regX = distanceTraveled.getMeasuredWidth() / 2;
+	distanceTraveled.x = 0;
+	distanceTraveled.y = realScore.getMeasuredHeight();
+
+	finalScore.regX = finalScore.getMeasuredWidth() / 2;
+	finalScore.x = 0;
+	finalScore.y = distanceTraveled.y + distanceTraveled.getMeasuredHeight();
+
+	resultsContainer = new createjs.Container();
+	resultsContainer.addChild( finalScore, realScore, distanceTraveled );
+	resultsContainer.regY = ( finalScore.y + finalScore.getMeasuredHeight() ) / 2;
+	resultsContainer.x = stage.canvas.width / 2;
+	resultsContainer.y = stage.canvas.height / 2;
+	stage.addChild( resultsContainer );
 	gameOverInitialized = true;
 }
 
@@ -1078,7 +1107,7 @@ function gameOverDelete()
 {
 	stage.removeAllChildren();
 	menuButton.removeAllEventListeners();
-	scoreDisplay = null;
+	finalScore = realScore = distanceTraveled = resultsContainer = null;
 	gameOverInitialized = false;
 }
 
@@ -1170,7 +1199,7 @@ gamestate =
 				else loadingUpdate( instructionQueue );
 			},
 		"credits":
-			function()
+			function ()
 			{
 				if ( instructionQueue != null && instructionQueue.loaded ) creditsUpdate();
 				else loadingUpdate( instructionQueue );
