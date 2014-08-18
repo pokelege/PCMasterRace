@@ -581,7 +581,6 @@ function gameInit()
 	stage.addChild( backgroundScreen );
 	lastKey = 0;
 
-	touchingFloor = false;
 	jamieHold = false;
 	jamieMode = false;
 	life = 30;
@@ -732,7 +731,6 @@ var damping = 0.1;
 var lastSpawnEnemyDistance;
 var lastSpawnHealthDistance;
 var SCROLLACCELERATION = 5;
-var touchingFloor = false;
 function gameUpdate()
 {
 	if ( !gameInitialized )
@@ -787,10 +785,10 @@ function gameUpdate()
 			else if ( animated )
 			{
 				//healthSpawn -= ( 1 / createjs.Ticker.getFPS() );
-				if ( Math.floor( distance * 0.001 ) > lastSpawnHealthDistance )
+				if ( Math.floor( distance * 0.0025 ) > lastSpawnHealthDistance )
 				{
 					if ( Math.random() <= 0.5 ) spawnHealth();
-					lastSpawnHealthDistance = Math.floor( distance * 0.001 );
+					lastSpawnHealthDistance = Math.floor( distance * 0.0025 );
 					//healthSpawn = healthSpawnInterval;
 				}
 				//enemySpawn -= ( 1 / createjs.Ticker.getFPS() );
@@ -914,7 +912,7 @@ function processMovement()
 	}
 
 	if ( !jamieMode ) character.x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
-	if(!touchingFloor) velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
+	velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
 	velocity.X *= Math.pow( damping, ( 1 / createjs.Ticker.getFPS() ) );
 	character.x += velocity.X * ( 1 / createjs.Ticker.getFPS() );
 	character.y += velocity.Y * ( 1 / createjs.Ticker.getFPS() );
@@ -928,13 +926,11 @@ function processMovement()
 
 function processCollisions()
 {
-	touchingFloor = false;
 	for ( i = 0; i < floorArray.length; i++ )
 	{
 		var collided = ndgmr.checkRectCollision( character, floorArray[i] );
 		if ( collided )
 		{
-			touchingFloor = true;
 			character.y -= collided.height;
 			if ( jumpPressed ) velocity.Y = -250;
 			else velocity.Y = 0;
