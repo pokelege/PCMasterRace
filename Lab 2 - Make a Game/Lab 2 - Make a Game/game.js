@@ -228,28 +228,18 @@ function gameLoaded()
 		{
 			images: [gameQueue.getResult( "character" )],
 			frames:
-				{
-					regX: 75 / 2,
-					regY: 150 / 2,
-					width: 75,
-					height: 150,
-					count: 1
-				},
+				[[0, 0, 54, 222, 0, 15.450000000000003, 130.55], [54, 0, 81, 221, 0, 35.45, 128.55], [135, 0, 99, 221, 0, 40.45, 129.55], [234, 0, 109, 202, 0, 47.45, 115.55000000000001], [343, 0, 133, 197, 0, 53.45, 109.55000000000001], [476, 0, 141, 192, 0, 56.45, 104.55000000000001], [617, 0, 129, 192, 0, 50.45, 109.55000000000001], [746, 0, 115, 201, 0, 45.45, 111.55000000000001], [861, 0, 103, 202, 0, 34.45, 111.55000000000001], [0, 222, 93, 202, 0, 22.450000000000003, 111.55000000000001], [93, 222, 90, 206, 0, 18.450000000000003, 114.55000000000001], [183, 222, 106, 204, 0, 35.45, 111.55000000000001], [289, 222, 109, 203, 0, 40.45, 111.55000000000001], [398, 222, 117, 198, 0, 47.45, 111.55000000000001], [515, 222, 132, 197, 0, 53.45, 109.55000000000001], [647, 222, 141, 192, 0, 56.45, 104.55000000000001], [788, 222, 129, 192, 0, 50.45, 109.55000000000001], [0, 428, 115, 201, 0, 45.45, 111.55000000000001], [115, 428, 103, 202, 0, 34.45, 111.55000000000001], [218, 428, 93, 202, 0, 22.450000000000003, 111.55000000000001], [311, 428, 90, 206, 0, 18.450000000000003, 114.55000000000001], [401, 428, 106, 204, 0, 35.45, 111.55000000000001], [507, 428, 109, 203, 0, 40.45, 111.55000000000001], [616, 428, 117, 198, 0, 47.45, 111.55000000000001], [733, 428, 132, 197, 0, 53.45, 109.55000000000001]],
 			animations:
 				{
-					NeutralFront:
-						{
-							frames: [0, 0]
-						},
-					NeutralBack:
-						{
-							frames: [0, 0]
-						}
+					NeutralFront:[0, 0, "NeutralFront"],
+					Run:[1,4,"RunLoop"],
+					RunLoop: [5,24, "RunLoop"]
 				}
 		}
 	);
 	character = new createjs.Sprite( characterSheet, "NeutralFront" );
-
+	character.scaleY = 0.5;
+	character.scaleX = 0.5;
 
 	var enemySheet = new createjs.SpriteSheet
 		(
@@ -257,18 +247,14 @@ function gameLoaded()
 			images: [gameQueue.getResult( "enemy" )],
 			frames:
 				{
-					regX: 50,
-					regY: 50,
-					width: 100,
-					height: 100,
-					count: 1
+					regX: 173/2,
+					regY: 134/2,
+					width: 173,
+					height: 134
 				},
 			animations:
 				{
-					Neutral:
-						{
-							frames: [0, 0]
-						}
+					Neutral:[0, 0]
 				}
 		}
 		);
@@ -279,24 +265,19 @@ function gameLoaded()
 		{
 			images: [gameQueue.getResult( "health" )],
 			frames:
-				{
-					regX: 50,
-					regY: 50,
-					width: 100,
-					height: 100,
-					count: 1
-				},
+			{
+				regX: 50,
+				regY: 50,
+				width: 100,
+				height: 100,
+			},
 			animations:
-				{
-					Neutral:
-						{
-							frames: [0, 0]
-						}
-				}
+			{
+				Neutral:[0, 8, "Neutral"]
+			}
 		}
 	);
-	health = new createjs.Sprite( healthSheet, "Neutral" );
-
+	health = new createjs.Sprite(healthSheet, "Neutral");
 	var fpsBarSheet = new createjs.SpriteSheet
 		(
 		{
@@ -611,6 +592,7 @@ function gameInit()
 		stage.addChild( floorArray[i] );
 	}
 
+	frontFace = true;
 	velocity.X = 0;
 	velocity.Y = 0;
 	character.x = 100;
@@ -827,16 +809,25 @@ var ACCELERATION = 10;
 var scrollspeed;
 var shot = false;
 var bulletVelocity = 5;
+var frontFace = true;
 function processMovement()
 {
 	if ( leftPressed )
 	{
 		velocity.X -= ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
-		character.gotoAndPlay( "NeutralBack" );
+		frontFace = false;
+		character.scaleX = -0.5;
+		if ( character.currentAnimation == "NeutralFront" ) character.gotoAndPlay( "Run" );
 	}
-	if ( rightPressed )
+	else if ( rightPressed )
 	{
+		frontFace = true;
 		velocity.X += ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
+		character.scaleX = 0.5;
+		if ( character.currentAnimation == "NeutralFront" ) character.gotoAndPlay( "Run" );
+	}
+	else
+	{
 		character.gotoAndPlay( "NeutralFront" );
 	}
 	if ( downPressed )
@@ -850,13 +841,13 @@ function processMovement()
 		{
 			if ( !bulletArray[i].sprite.visible )
 			{
-				if ( character.currentAnimation == "NeutralFront" )
+				if ( frontFace )
 				{
 					bulletArray[i].sprite.x = character.x + ( character.getBounds().width / 2 );
 					bulletArray[i].sprite.y = character.y;
 					bulletArray[i].direction = 1;
 				}
-				else if ( character.currentAnimation == "NeutralBack" )
+				else
 				{
 					bulletArray[i].sprite.x = character.x - ( character.getBounds().width / 2 ) - bulletArray[i].sprite.getBounds().width;
 					bulletArray[i].sprite.y = character.y;
@@ -994,7 +985,7 @@ function processCollisions()
 	{
 		if ( enemyArray[i].visible )
 		{
-			var playerHitEnemy = ndgmr.checkRectCollision( character, enemyArray[i] );
+			var playerHitEnemy = ndgmr.checkPixelCollision( character, enemyArray[i], 0 );
 			if ( playerHitEnemy )
 			{
 				if ( !jamieMode )
@@ -1012,7 +1003,7 @@ function processCollisions()
 				{
 					if ( bulletArray[j].sprite.visible )
 					{
-						var bulletHitEnemy = ndgmr.checkRectCollision( bulletArray[j].sprite, enemyArray[i] );
+						var bulletHitEnemy = ndgmr.checkPixelCollision( bulletArray[j].sprite, enemyArray[i], 0 );
 						if ( bulletHitEnemy )
 						{
 							hitGood.stop();
