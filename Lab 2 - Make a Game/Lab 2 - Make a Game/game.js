@@ -338,6 +338,7 @@ function gameLoaded()
 	gameoverScreen = new createjs.Bitmap( gameQueue.getResult( "gameover" ) );
 	levelFrame = new createjs.Bitmap( gameQueue.getResult( "levelsign" ) );
 	music = new createjs.Sound.createInstance( "music" );
+	music.setVolume(0.50);
 	getHealth = new createjs.Sound.createInstance( "getHealth" );
 	shoot = new createjs.Sound.createInstance( "shoot" );
 	hitBad = new createjs.Sound.createInstance( "hitBad" );
@@ -585,16 +586,22 @@ function gameInit()
 	{
 		floorArray.push( floor.clone() );
 		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
-		floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
-		//floorArray[i].y = ( Math.random() * ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+		var generatedDistance = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+		if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height;
+		//var generatedDistance = ( ( Math.random() * 2 ) - 1 ) * character.getBounds().height;
+		//generatedDistance += floorArray[lastDistance.index].y;
+
+		//if ( generatedDistance > stage.canvas.height ) generatedDistance = stage.canvas.height;
+		//else if ( generatedDistance < 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) generatedDistance = 2 * floorArray[i].getBounds().height * floorArray[i].scaleY;
+		floorArray[i].y = generatedDistance;
+		//floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
 		lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 		lastDistance.index = i;
 		stage.addChild( floorArray[i] );
 	}
 
 	frontFace = true;
-	velocity.X = 0;
-	velocity.Y = 0;
+	velocity = new vec2();
 	character.x = 100;
 	character.y = stage.canvas.height / 4;
 	stage.addChild( character );
@@ -716,7 +723,12 @@ function jamieToggle()
 }
 
 var lastKey;
-var velocity = { X: 0, Y: 0 };
+function vec2()
+{
+	this.X = 0;
+	this.Y = 0;
+}
+var velocity;
 var damping = 0.1;
 var lastSpawnEnemyDistance;
 var lastSpawnHealthDistance;
@@ -870,7 +882,17 @@ function processMovement()
 		{
 			floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
 			if ( jamieMode ) floorArray[i].y = stage.canvas.height;
-			else floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+			else
+			{
+				var generatedDistance = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+				if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height;
+				//var generatedDistance = ( ( Math.random() * 2 ) - 1 ) * character.getBounds().height;
+				//generatedDistance += floorArray[lastDistance.index].y;
+				//if ( generatedDistance > stage.canvas.height ) generatedDistance = stage.canvas.height;
+				//else if ( generatedDistance < 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) generatedDistance = 2 * floorArray[i].getBounds().height * floorArray[i].scaleY;
+				floorArray[i].y = generatedDistance;
+				//floorArray[i].y = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
+			}
 			lastDistance.distance += ( floorArray[i].getBounds().width * floorArray[i].scaleX ) + floorArray[i].x;
 			lastDistance.index = i;
 		}
