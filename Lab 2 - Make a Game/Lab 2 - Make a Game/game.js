@@ -8,6 +8,7 @@ var TITLEBUTTONSIZE = 12;
 var AUDIOBUTTIONSIZE = 6;
 var MAINFPS = 30;
 var MAXFPS = 60;
+var goodCollision = false;
 var titleManifest =
 [
 	{ src: "images/title.jpg", id: "title" },
@@ -33,6 +34,7 @@ var gameManifest =
 	{ src: "images/fpsBar.png", id: "fpsBar" },
 	{ src: "images/bullet.png", id: "bullet" },
 	{ src: "images/hud.png", id: "hud" },
+	{ src: "images/hitBadParticle.png", id: "hitBadParticle" },
 	{ src: "images/jamie.jpg", id: "jamie" },
 	{ src: "audio/getHealth.mp3", id: "getHealth" },
 	{ src: "audio/shoot.mp3", id: "shoot" },
@@ -44,7 +46,7 @@ var titleQueue, titleScreen, playButton, menuButton, creditsButton, audioButton;
 
 var instructionQueue, instructionScreen, credits;
 
-var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, hud, jamie;
+var gameQueue, backgroundScreen, gameoverScreen, levelFrame, music, getHealth, shoot, hitBad, hitGood, character, enemy, health, fpsBar, bullet, floor, hud, jamie, hitBadParticle;
 
 function setUpCanvas()
 {
@@ -264,13 +266,7 @@ function gameLoaded()
 	(
 		{
 			images: [gameQueue.getResult( "health" )],
-			frames:
-			{
-				regX: 50,
-				regY: 50,
-				width: 100,
-				height: 100,
-			},
+			frames: [[0, 0, 109, 157, 0, 48.4, 103.15], [109, 0, 109, 158, 0, 48.4, 104.15], [218, 0, 109, 160, 0, 48.4, 106.15], [327, 0, 109, 162, 0, 48.4, 108.15], [0, 162, 112, 163, 0, 51.4, 109.15], [112, 162, 116, 166, 0, 55.4, 112.15], [228, 162, 111, 163, 0, 50.4, 109.15], [339, 162, 109, 161, 0, 48.4, 107.15], [0, 328, 109, 159, 0, 48.4, 105.15], [109, 328, 109, 157, 0, 48.4, 103.15]],
 			animations:
 			{
 				Neutral:[0, 8, "Neutral"]
@@ -328,6 +324,21 @@ function gameLoaded()
 	bullet = new createjs.Sprite( bulletSheet, "Normal" );
 	bullet.scaleY = 0.1;
 	bullet.regY = 100 * 0.1 * 0.5;
+
+	var hitBadParticleSheet = new createjs.SpriteSheet
+	(
+		{
+			images: [gameQueue.getResult( "hitBadParticle" )],
+			frames: [[0, 0, 21, 21, 0, 26.950000000000003, 6.950000000000003], [21, 0, 31, 31, 0, 31.950000000000003, 11.950000000000003], [52, 0, 41, 41, 0, 36.95, 16.950000000000003], [93, 0, 53, 53, 0, 42.95, 22.950000000000003], [146, 0, 63, 63, 0, 47.95, 27.950000000000003], [209, 0, 73, 73, 0, 52.95, 32.95], [282, 0, 85, 85, 0, 58.95, 38.95], [367, 0, 95, 95, 0, 63.95, 43.95], [0, 95, 107, 106, 0, 69.95, 49.95], [107, 95, 117, 117, 0, 74.95, 54.95], [224, 95, 127, 127, 0, 79.95, 59.95], [351, 95, 139, 139, 0, 85.95, 65.95], [0, 234, 149, 149, 0, 90.95, 70.95], [149, 234, 161, 160, 0, 96.95, 76.95], [310, 234, 171, 171, 0, 101.95, 81.95]],
+			animations:
+				{
+					Normal:[0,14, false]
+				}
+		}
+	);
+
+	hitBadParticle = new createjs.Sprite( hitBadParticleSheet, "Normal" );
+	hitBadParticle.on( "animationend", function ( evt ) { evt.target.visible = false; } );
 
 	jamie = new createjs.Bitmap( gameQueue.getResult( "jamie" ) );
 	jamie.regX = jamie.getBounds().width;
@@ -526,6 +537,7 @@ var highScore = 0;
 var floorArray;
 var distance;
 var distanceBoundary;
+var hitBadParticleArray;
 var score;
 var lastDistance =
 	{
@@ -563,6 +575,8 @@ function showLevelFrame()
 	animated = false;
 }
 
+
+
 function gameInit()
 {
 	stage.addChild( backgroundScreen );
@@ -587,7 +601,7 @@ function gameInit()
 		floorArray.push( floor.clone() );
 		floorArray[i].x = ( floorArray[lastDistance.index].getBounds().width * floorArray[lastDistance.index].scaleX ) + floorArray[lastDistance.index].x;
 		var generatedDistance = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
-		if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height;
+		if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height + ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height + ( floorArray[i].getBounds().height * floorArray[i].scaleY );
 		//var generatedDistance = ( ( Math.random() * 2 ) - 1 ) * character.getBounds().height;
 		//generatedDistance += floorArray[lastDistance.index].y;
 
@@ -627,6 +641,14 @@ function gameInit()
 		bulletArray.push( new BulletInstance( bullet.clone() ) );
 		bulletArray[i].sprite.visible = false;
 		stage.addChild( bulletArray[i].sprite );
+	}
+
+	hitBadParticleArray = new Array();
+	for ( i = 0; i < enemyArray.length; i++ )
+	{
+		hitBadParticleArray.push( hitBadParticle.clone() );
+		hitBadParticleArray[i].visible = false;
+		stage.addChild( hitBadParticleArray[i] );
 	}
 
 	stage.addChild( menuButton );
@@ -885,7 +907,7 @@ function processMovement()
 			else
 			{
 				var generatedDistance = ( ( stage.canvas.height - ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY ) ) * Math.random() ) + ( 2 * floorArray[i].getBounds().height * floorArray[i].scaleY );
-				if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height;
+				if ( generatedDistance < floorArray[lastDistance.index].y - character.getBounds().height + ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) generatedDistance = floorArray[lastDistance.index].y - character.getBounds().height + ( floorArray[i].getBounds().height * floorArray[i].scaleY );
 				//var generatedDistance = ( ( Math.random() * 2 ) - 1 ) * character.getBounds().height;
 				//generatedDistance += floorArray[lastDistance.index].y;
 				//if ( generatedDistance > stage.canvas.height ) generatedDistance = stage.canvas.height;
@@ -933,6 +955,18 @@ function processMovement()
 		}
 	}
 
+	for ( i = 0; i < hitBadParticleArray.length; i++ )
+	{
+		if(hitBadParticleArray[i].visible)
+		{
+			hitBadParticleArray[i].x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
+			if ( ( hitBadParticleArray[i].getBounds().width * hitBadParticleArray[i].scaleX ) + hitBadParticleArray[i].x <= 0 )
+			{
+				hitBadParticleArray[i].visible = false;
+			}
+		}
+	}
+
 	if ( !jamieMode ) character.x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
 	velocity.Y += ( GRAVITY * ( 1 / createjs.Ticker.getFPS() ) );
 	velocity.X *= Math.pow( damping, ( 1 / createjs.Ticker.getFPS() ) );
@@ -953,34 +987,107 @@ function processCollisions()
 		var collided = ndgmr.checkRectCollision( character, floorArray[i] );
 		if ( collided )
 		{
-			character.y -= collided.height;
-			if ( jumpPressed ) velocity.Y = -250;
-			else velocity.Y = 0;
+			//if( floorArray[i].y -( character.y - ( character.getBounds().height * character.scaleY * 0.5 ) ) <= 0 )
+			//{
+			//	character.y += collided.height;
+			//	velocity.Y = 0;
+			//}
+			//else if ( (floorArray[i].x + ( floorArray[i].getBounds().width * floorArray[i].scaleX ) ) - ( character.x - ( ( character.getBounds().width * character.scaleX ) / 2 ) ) <= 0 )
+			//{
+			//	velocity.X = 0;
+			//	character.x += collided.width;
+			//}
+			//else if( floorArray[i].x - (character.x + ((character.getBounds().width * character.scaleX) / 2)) >= 0)
+			//{
+			//	velocity.X = 0;
+			//	character.x -= collided.width;
+			//}
+			//else
+			//{
+			//	character.y -= collided.height;
+			//	if ( jumpPressed ) velocity.Y = -250;
+			//	else velocity.Y = 0;
+			//}
+
+			if ( goodCollision )
+			{
+				var top = Math.abs(( ( floorArray[i].y ) - ( floorArray[i].getBounds().height * floorArray[i].scaleY ) ) - ( character.y + ( character.getBounds().height * character.scaleY * 0.5 ) ) );
+				var bottom = Math.abs(( floorArray[i].y ) - ( character.y - ( character.getBounds().height * character.scaleY * 0.5 ) ) );
+
+				var left = Math.abs(( floorArray[i].x ) - ( character.x + ( character.getBounds().width * Math.abs( character.scaleX ) * 0.5 ) ) );
+
+				var right = Math.abs(( ( floorArray[i].x ) + ( floorArray[i].getBounds().width * floorArray[i].scaleX ) ) - ( character.x - ( character.getBounds().width * Math.abs( character.scaleX ) * 0.5 ) ) );
+
+				var result = Math.min( Math.abs( top ), Math.abs( bottom ), Math.abs( left ), Math.abs( right ) );
+				//if ( collided.height <= collided.width )
+				//{
+				//	result = Math.min( top, bottom );
+				//}
+				//else
+				//{
+				//	result = Math.min( left, right );
+				//}
+
+				switch ( result )
+				{
+					case ( top ):
+						{
+							character.y -= collided.height;
+							if ( jumpPressed ) velocity.Y = -300;
+							else velocity.Y = 0;
+							break;
+						}
+					case ( bottom ):
+						{
+							character.y += collided.height
+							velocity.Y = 0;
+							break;
+						}
+					case ( left ):
+						{
+							velocity.X = 0;
+							character.x -= collided.width;
+							break;
+						}
+					case ( right ):
+						{
+							velocity.X = 0;
+							character.x += collided.width;
+							break;
+						}
+				}
+			}
+			else
+			{
+				character.y -= collided.height;
+				if ( jumpPressed ) velocity.Y = -300;
+				else velocity.Y = 0;
+			}
 		}
 
 		for ( j = 0; j < healthArray.length; j++ )
-		{
-			if ( healthArray[j].visible )
+			{
+				if ( healthArray[j].visible )
 			{
 
 				var healthFloorCollision = ndgmr.checkRectCollision( healthArray[j], floorArray[i] );
 				if ( healthFloorCollision )
 				{
 					healthArray[j].y -= healthFloorCollision.height;
-				}
-			}
+		}
+		}
 		}
 
 		for ( j = 0; j < enemyArray.length; j++ )
-		{
-			if ( enemyArray[j].visible )
 			{
-				var enemyFloorCollision = ndgmr.checkRectCollision( enemyArray[j], floorArray[i] );
-				if ( enemyFloorCollision )
+				if ( enemyArray[j].visible )
 				{
-					enemyArray[j].y -= enemyFloorCollision.height;
-				}
-			}
+					var enemyFloorCollision = ndgmr.checkRectCollision( enemyArray[j], floorArray[i] );
+					if ( enemyFloorCollision )
+					{
+						enemyArray[j].y -= enemyFloorCollision.height;
+		}
+		}
 		}
 	}
 
@@ -1012,6 +1119,17 @@ function processCollisions()
 			{
 				if ( !jamieMode )
 				{
+					for ( j = 0; j < hitBadParticleArray.length; j++ )
+					{
+						if(!hitBadParticleArray[j].visible)
+						{
+							hitBadParticleArray[j].x = ( character.x + enemyArray[i].x ) / 2;
+							hitBadParticleArray[j].y = ( character.y + enemyArray[i].y ) / 2;
+							hitBadParticleArray[j].visible = true;
+							hitBadParticleArray[j].gotoAndPlay( "Normal" );
+							break;
+						}
+					}
 					hitBad.stop();
 					hitBad.play();
 					life -= 2;
