@@ -819,7 +819,7 @@ function gameInit()
 	lastLife = life;
 	scrollspeed = 50;
 	time = 0;
-	music.play( { loop: -1 } );
+	music.play( { loop: -1 });
 
 	BGParticleArray = new Array();
 
@@ -1028,10 +1028,9 @@ function gameUpdate()
 	{
 		jamieToggle();
 		jamie.visible = jamieMode;
+		music.setMute( mute );
 		if ( jamieMode )
 		{
-
-			music.setMute( mute );
 			if ( character.y - 75 >= stage.canvas.height || life < 1 )
 			{
 				mode = MODE_GAMEOVER;
@@ -1062,7 +1061,6 @@ function gameUpdate()
 		}
 		else
 		{
-			music.setMute( mute );
 			if ( character.y - 75 >= stage.canvas.height || life < 1 )
 			{
 				mode = MODE_GAMEOVER;
