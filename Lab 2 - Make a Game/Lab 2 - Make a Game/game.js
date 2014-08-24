@@ -1127,35 +1127,6 @@ function processMovement()
 		velocity.Y += ( ACCELERATION * scrollspeed ) * ( 1 / createjs.Ticker.getFPS() );
 	}
 
-	if ( firePressed && !shot )
-	{
-		for ( i = 0; i < bulletArray.length; i++ )
-		{
-			if ( !bulletArray[i].sprite.visible )
-			{
-				if ( frontFace )
-				{
-					bulletArray[i].sprite.x = character.x + ( character.getBounds().width / 2 );
-					bulletArray[i].sprite.y = character.y;
-					bulletArray[i].direction = 1;
-				}
-				else
-				{
-					bulletArray[i].sprite.x = character.x - ( character.getBounds().width / 2 ) - ( bulletArray[i].sprite.getBounds().width * bulletArray[i].sprite.scaleX );
-					bulletArray[i].sprite.y = character.y;
-					bulletArray[i].direction = -1;
-				}
-
-				shoot.stop();
-				shoot.play();
-				bulletArray[i].sprite.gotoAndPlay( Math.random() * 39 );
-				bulletArray[i].sprite.visible = true;
-				shot = true;
-				break;
-			}
-		}
-	}
-	else if ( !firePressed && shot ) shot = false;
 	for ( i = 0; i < floorArray.length; i++ )
 	{
 		floorArray[i].x -= scrollspeed * ( 1 / createjs.Ticker.getFPS() );
@@ -1215,6 +1186,36 @@ function processMovement()
 			}
 		}
 	}
+
+	if ( firePressed && !shot )
+	{
+		for ( i = 0; i < bulletArray.length; i++ )
+		{
+			if ( !bulletArray[i].sprite.visible )
+			{
+				if ( frontFace )
+				{
+					bulletArray[i].sprite.x = character.x + ( (character.getBounds().width * characterScale) / 2 );
+					bulletArray[i].sprite.y = character.y;
+					bulletArray[i].direction = 1;
+				}
+				else
+				{
+					bulletArray[i].sprite.x = character.x - ( (character.getBounds().width * characterScale) / 2 ) - ( bulletArray[i].sprite.getBounds().width * bulletArray[i].sprite.scaleX );
+					bulletArray[i].sprite.y = character.y;
+					bulletArray[i].direction = -1;
+				}
+
+				shoot.stop();
+				shoot.play();
+				bulletArray[i].sprite.gotoAndPlay( Math.random() * 39 );
+				bulletArray[i].sprite.visible = true;
+				shot = true;
+				break;
+			}
+		}
+	}
+	else if ( !firePressed && shot ) shot = false;
 
 	for ( i = 0; i < hitBadParticleArray.length; i++ )
 	{
