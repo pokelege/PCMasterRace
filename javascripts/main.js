@@ -1864,12 +1864,16 @@ function handleKeyUp( evt )
 if ( !!( window.addEventListener ) )
 {
 	window.addEventListener( "DOMContentLoaded", main );
-	window.addEventListener("keydowndefault", function(e)
+	document.onkeydown = handleKeyDown;
+	document.onkeyup = handleKeyUp;
+		window.addEventListener("keydown", function(e)
 	{
         	e.preventDefault();
 	}, false);
-	document.onkeydown = handleKeyDown;
-	document.onkeyup = handleKeyUp;
+		window.addEventListener("keyup", function(e)
+	{
+        	e.preventDefault();
+	}, false);
 }
 else
 { //MSIE
