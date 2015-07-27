@@ -1793,6 +1793,7 @@ function handleKeyUp( evt )
 	if ( !evt ) { var evt = window.event; }
 	switch ( evt.keyCode )
 	{
+		evt.preventDefault();
 		case KEYCODE_LEFT:
 			{
 				leftPressed = false;
