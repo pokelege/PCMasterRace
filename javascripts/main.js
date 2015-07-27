@@ -1793,7 +1793,6 @@ function handleKeyUp( evt )
 	if ( !evt ) { var evt = window.event; }
 	switch ( evt.keyCode )
 	{
-		evt.preventDefault();
 		case KEYCODE_LEFT:
 			{
 				leftPressed = false;
@@ -1865,12 +1864,20 @@ function handleKeyUp( evt )
 if ( !!( window.addEventListener ) )
 {
 	window.addEventListener( "DOMContentLoaded", main );
+	window.addEventListener("keydowndefault", function(e)
+	{
+        	e.preventDefault();
+	}, false);
 	document.onkeydown = handleKeyDown;
 	document.onkeyup = handleKeyUp;
 }
 else
 { //MSIE
 	window.attachEvent( "onload", main );
+	window.attachEvent("keydowndefault", function(e)
+	{
+        	e.preventDefault();
+	}, false);
 	document.onkeydown = handleKeyDown;
 	document.onkeyup = handleKeyUp;
 }
